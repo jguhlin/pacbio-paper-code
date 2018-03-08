@@ -1,0 +1,11 @@
+/home/joseph/msi/work/pacbio-paper-code/genomes/2011.final.fasta /home/joseph/msi/work/pacbio-paper-code/genomes/2011.final.fasta
+NUCMER
+>Main Main 3657276 3657276
+1 3657276 1 3657276 0 0 0
+0
+>pSymA pSymA 1352561 1352561
+1 1352561 1 1352561 0 0 0
+0
+>pSymB pSymB 1683348 1683348
+1 1683348 1 1683348 0 0 0
+0

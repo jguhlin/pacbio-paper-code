@@ -1,0 +1,170 @@
+;; gorilla-repl.fileformat = 1
+
+;; **
+;;; # Gorilla REPL
+;;; 
+;;; Welcome to gorilla :-)
+;;; 
+;;; Shift + enter evaluates code. Hit alt+g twice in quick succession or click the menu icon (upper-right corner) for more commands ...
+;;; 
+;;; It's a good habit to run each worksheet in its own namespace: feel free to use the declaration we've provided below if you'd like.
+;; **
+
+;; @@
+(ns billowing-dusk
+  (:require [gorilla-plot.core :as plot]
+            [digest :as digest]
+            [biotools.fasta :as fasta]
+            [clojure.core.matrix :as mat]
+            [incanter.io :as iio]
+            [me.raynes.fs :as fs]
+            [clojure.math.combinatorics :as combo]
+            [clojure.core.matrix.dataset :refer :all]
+            [clojure.core.matrix.operators :refer :all]))
+
+(set-current-implementation :vectorz)
+
+(defrecord BlastRecord
+  [query
+   subject
+   pct-id
+   length
+   mismatch
+   gapopen
+   qstart
+   qend
+   sstart
+   send
+   evalue
+   bitscore
+   qlen
+   slen])
+
+(defn get-strains [filename]
+  (let [[_ query-strain subject-strain]
+        (re-find
+          (re-matcher
+            #"blastp-comparison-sinorhizobium_meliloti_(.*)-vs-sinorhizobium_meliloti_(.*).tsv"
+            filename))]
+    {:query-strain query-strain 
+     :subject-strain subject-strain}))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;billowing-dusk/get-strains</span>","value":"#'billowing-dusk/get-strains"}
+;; <=
+
+;; @@
+(def files-to-process
+  (filter
+    (fn [x]
+      (re-find #"blastp-comparison" (.toString x)))
+    (fs/list-dir "../../odg/data/results/blastp/")))
+
+(def filename "../../odg/data/results/blastp/blastp-comparison-sinorhizobium_meliloti_")
+
+(defn process-blast-file [file]
+  (with-open [rdr (clojure.java.io/reader (.toString file))]
+    (let [strains (get-strains (.toString file))]
+      (doall
+        (->> rdr
+             (line-seq)
+             (map
+               (fn [x]
+                 (let [[query subject pct-id length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen]
+                       (clojure.string/split x #"\s+")]
+                   (->BlastRecord 
+                     (str (:query-strain strains) "_" query)
+                     (str (:subject-strain strains) "_" subject)
+                     (read-string pct-id)
+                     (read-string length)
+                     (read-string mismatch)
+                     (read-string gapopen)
+                     (read-string qstart)
+                     (read-string qend)
+                     (read-string sstart)
+                     (read-string send)
+                     (read-string evalue)
+                     (read-string bitscore)
+                     (read-string qlen)
+                     (read-string slen))))))))))
+
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;billowing-dusk/process-blast-file</span>","value":"#'billowing-dusk/process-blast-file"}
+;; <=
+
+;; @@
+(def proteins
+  (sort
+    (distinct
+      (flatten
+        (for [blast-results (pmap process-blast-file files-to-process)]
+          (->> blast-results
+               (map :query)
+               (distinct)))))))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;billowing-dusk/proteins</span>","value":"#'billowing-dusk/proteins"}
+;; <=
+
+;; @@
+(def
+  a
+  (into 
+    {}
+    (map 
+      vector
+      proteins
+      (range))))
+    
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;billowing-dusk/a</span>","value":"#'billowing-dusk/a"}
+;; <=
+
+;; @@
+; Generate bitscore matrix for all proteins x proteins
+(defn process-blast []
+  (let [m (mat/mutable
+            (mat/zero-matrix 
+              (count proteins) 
+              (count proteins)))]
+    (doall
+      (for [blast-results (pmap process-blast-file files-to-process)]
+        (map
+          (fn [x]
+            (mat/mset! m 
+                   (get a (:query x))
+                   (get a (:subject x))
+                   (:bitscore x)))
+          blast-results)))
+    (mat/immutable m)))
+    
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;billowing-dusk/process-blast</span>","value":"#'billowing-dusk/process-blast"}
+;; <=
+
+;; @@
+(def m (process-blast))
+;; @@
+
+;; @@
+(defn save [filename data]
+  (with-open [w (clojure.java.io/writer filename)]
+    (for [row (mat/rows m)])
+    (.write w (clojure.string/join "\t" row))
+    (.write w "\n")))
+;; @@
+
+;; @@
+
+;; @@
+
+;; @@
+
+;; @@
+
+;; @@
+
+;; @@

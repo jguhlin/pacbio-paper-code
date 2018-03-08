@@ -1,0 +1,485 @@
+;; gorilla-repl.fileformat = 1
+
+;; **
+;;; # MCL Output Analysis
+;;; 
+;;; Calculates core and pan-clusters
+;; **
+
+;; @@
+(ns pleasant-winds
+  (:require [gorilla-plot.core :as plot]
+            [digest :as digest]
+            [biotools.fasta :as fasta]
+            [clojure.core.matrix :as mat]
+            [incanter.io :as iio]
+            [clojure.math.combinatorics :as combo]
+            [clojure.core.matrix.dataset :refer :all]
+            [clojure.core.matrix.operators :refer :all]))
+
+;(use '(incanter core stats charts io))
+
+(mat/set-current-implementation :vectorz)
+
+
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-keyword'>:vectorz</span>","value":":vectorz"}
+;; <=
+
+;; **
+;;; ### Util Fns
+;; **
+
+;; @@
+(defn split-protein-ids
+  [id]
+  (clojure.string/split id #"\|"))
+
+(defn parse-mcl-accessions
+  [x]
+  (let [protein-ids (clojure.string/split x #"\s+")
+        accessions (distinct (map first (map (fn [x] (clojure.string/split x #"\|")) protein-ids)))]
+    accessions))
+
+(defn parse-mcl-groups
+  [x]
+  (let [protein-ids (clojure.string/split x #"\s+")]
+    protein-ids))
+
+(defn calc-pav
+  [accessions [group-id protein-ids]]
+  (let [freqs (frequencies (map (comp first split-protein-ids) protein-ids))]
+    [group-id
+     (into 
+       {}
+       (for [acc accessions]
+         {acc 
+          (if (get freqs acc)
+            1
+            0)}))]))
+
+(defn calc-cnv
+  [accessions [group-id protein-ids]]
+  (let [freqs (frequencies (map (comp first split-protein-ids) protein-ids))]
+    [group-id
+     (into 
+       {}
+       (for [acc accessions]
+         {acc 
+          (if (get freqs acc)
+            (get freqs acc)
+            0)}))]))
+
+; Allele Frequencies are based on presence / absence
+(defn calc-af
+  [accessions [group-id protein-ids]]
+  (let [freqs (frequencies (map (comp first split-protein-ids) protein-ids))]
+    [group-id
+     (/
+       (reduce 
+         +
+         (for [acc accessions]
+            (if (get freqs acc)
+              1
+              0)))
+       (count accessions))]))
+
+(def accessions
+  (with-open [rdr (clojure.java.io/reader "../remove-1021-m162/out.all-vs-all.tsv.I100")]
+    (let [data-file (line-seq rdr)]
+      (doall 
+        (sort (distinct (flatten (map parse-mcl-accessions data-file))))))))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;pleasant-winds/accessions</span>","value":"#'pleasant-winds/accessions"}
+;; <=
+
+;; **
+;;; ### Get Groups and Frequencies
+;; **
+
+;; @@
+(defn calc-groups [fname]
+  (with-open [rdr (clojure.java.io/reader fname)]
+  	(let [data-file (line-seq rdr)]
+      (doall 
+        (zipmap 
+          (range 0 (count data-file))
+          (remove 
+            (fn [x] (= (count x) 1))
+            (map parse-mcl-groups data-file)))))))
+
+; /remove-1021-m162
+
+; All replicons
+(def groups
+  (calc-groups "../remove-1021-m162/out.all-vs-all.tsv.I100"))
+(def groups-map groups)
+
+; Main replicon
+(def groups-main
+  (calc-groups "../remove-1021-m162/out.main-vs-main.tsv.I100"))
+(def groups-main-map groups-main)
+
+; pSymA
+(def groups-psyma
+  (calc-groups "../remove-1021-m162/out.psyma-vs-psyma.tsv.I100"))
+(def groups-psyma-map groups-psyma)
+
+; pSymA + Acc
+(def groups-psyma-acc
+  (calc-groups "../remove-1021-m162/out.psyma-and-acc.tsv.I100"))
+(def groups-psyma-acc-map groups-psyma-acc)
+
+; pSymB
+(def groups-psymb
+  (calc-groups "../remove-1021-m162/out.psymb-vs-psymb.tsv.I100"))
+(def groups-psymb-map groups-psymb)
+
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;pleasant-winds/groups-psymb-map</span>","value":"#'pleasant-winds/groups-psymb-map"}
+;; <=
+
+;; @@
+accessions
+;; @@
+;; =>
+;;; {"type":"list-like","open":"<span class='clj-list'>(</span>","close":"<span class='clj-list'>)</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;ak83&quot;</span>","value":"\"ak83\""},{"type":"html","content":"<span class='clj-string'>&quot;bl225&quot;</span>","value":"\"bl225\""},{"type":"html","content":"<span class='clj-string'>&quot;gr4&quot;</span>","value":"\"gr4\""},{"type":"html","content":"<span class='clj-string'>&quot;hm006&quot;</span>","value":"\"hm006\""},{"type":"html","content":"<span class='clj-string'>&quot;kh35c&quot;</span>","value":"\"kh35c\""},{"type":"html","content":"<span class='clj-string'>&quot;kh46c&quot;</span>","value":"\"kh46c\""},{"type":"html","content":"<span class='clj-string'>&quot;m270&quot;</span>","value":"\"m270\""},{"type":"html","content":"<span class='clj-string'>&quot;rm1021&quot;</span>","value":"\"rm1021\""},{"type":"html","content":"<span class='clj-string'>&quot;rm41&quot;</span>","value":"\"rm41\""},{"type":"html","content":"<span class='clj-string'>&quot;sm11&quot;</span>","value":"\"sm11\""},{"type":"html","content":"<span class='clj-string'>&quot;sm2011&quot;</span>","value":"\"sm2011\""},{"type":"html","content":"<span class='clj-string'>&quot;t073&quot;</span>","value":"\"t073\""},{"type":"html","content":"<span class='clj-string'>&quot;usda1106&quot;</span>","value":"\"usda1106\""},{"type":"html","content":"<span class='clj-string'>&quot;usda1157&quot;</span>","value":"\"usda1157\""}],"value":"(\"ak83\" \"bl225\" \"gr4\" \"hm006\" \"kh35c\" \"kh46c\" \"m270\" \"rm1021\" \"rm41\" \"sm11\" \"sm2011\" \"t073\" \"usda1106\" \"usda1157\")"}
+;; <=
+
+;; **
+;;; ## Get PAV Distance Matrix
+;; **
+
+;; @@
+(let [row-labels (keys (second (calc-pav accessions (first groups))))
+      col-labels (map first (map (partial calc-pav accessions) groups))]
+  (def row-labels row-labels)
+  (def col-labels col-labels)
+  (def pav-matrix 
+    (mat/transpose
+      (mat/matrix
+        (map
+          (fn [[_ x]]
+            (for [acc accessions]
+              (get x acc)))
+          (map
+            (partial calc-pav accessions) 
+            groups))))))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;pleasant-winds/pav-matrix</span>","value":"#'pleasant-winds/pav-matrix"}
+;; <=
+
+;; @@
+(mat/shape pav-matrix)
+;; @@
+;; =>
+;;; {"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>14</span>","value":"14"},{"type":"html","content":"<span class='clj-long'>6974</span>","value":"6974"}],"value":"[14 6974]"}
+;; <=
+
+;; @@
+(def pav-distance-matrix
+  (mat/matrix
+    (let [total (range 0 (first (mat/shape pav-matrix)))]
+      (for [a total]
+        (for [b total]
+          (mat/distance 
+            (mat/get-row pav-matrix a) 
+            (mat/get-row pav-matrix b)))))))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;pleasant-winds/pav-distance-matrix</span>","value":"#'pleasant-winds/pav-distance-matrix"}
+;; <=
+
+;; **
+;;; ## Get Gene Clusters on each Replicon by Strain
+;; **
+
+;; @@
+
+;; @@
+
+;; **
+;;; ### Get PAV
+;; **
+
+;; @@
+(map 
+  (fn [[_ x]]
+    (for [acc accessions]
+      (get x acc)))
+  (map 
+    (partial calc-pav accessions) 
+    (take-last 5 groups)))
+;; @@
+;; =>
+;;; {"type":"list-like","open":"<span class='clj-lazy-seq'>(</span>","close":"<span class='clj-lazy-seq'>)</span>","separator":" ","items":[{"type":"list-like","open":"<span class='clj-lazy-seq'>(</span>","close":"<span class='clj-lazy-seq'>)</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"(1 1 1 1 1 1 1 1 1 1 1 1 1 1)"},{"type":"list-like","open":"<span class='clj-lazy-seq'>(</span>","close":"<span class='clj-lazy-seq'>)</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"(1 1 1 1 1 1 1 1 1 1 1 1 1 1)"},{"type":"list-like","open":"<span class='clj-lazy-seq'>(</span>","close":"<span class='clj-lazy-seq'>)</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"(1 1 1 1 1 1 1 1 1 1 1 1 1 1)"},{"type":"list-like","open":"<span class='clj-lazy-seq'>(</span>","close":"<span class='clj-lazy-seq'>)</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"(0 0 0 0 0 1 0 1 0 0 1 0 1 0)"},{"type":"list-like","open":"<span class='clj-lazy-seq'>(</span>","close":"<span class='clj-lazy-seq'>)</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"(1 1 1 1 1 1 1 1 1 1 1 1 1 1)"}],"value":"((1 1 1 1 1 1 1 1 1 1 1 1 1 1) (1 1 1 1 1 1 1 1 1 1 1 1 1 1) (1 1 1 1 1 1 1 1 1 1 1 1 1 1) (0 0 0 0 0 1 0 1 0 0 1 0 1 0) (1 1 1 1 1 1 1 1 1 1 1 1 1 1))"}
+;; <=
+
+;; @@
+accessions
+;; @@
+;; =>
+;;; {"type":"list-like","open":"<span class='clj-list'>(</span>","close":"<span class='clj-list'>)</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;ak83&quot;</span>","value":"\"ak83\""},{"type":"html","content":"<span class='clj-string'>&quot;bl225&quot;</span>","value":"\"bl225\""},{"type":"html","content":"<span class='clj-string'>&quot;gr4&quot;</span>","value":"\"gr4\""},{"type":"html","content":"<span class='clj-string'>&quot;hm006&quot;</span>","value":"\"hm006\""},{"type":"html","content":"<span class='clj-string'>&quot;kh35c&quot;</span>","value":"\"kh35c\""},{"type":"html","content":"<span class='clj-string'>&quot;kh46c&quot;</span>","value":"\"kh46c\""},{"type":"html","content":"<span class='clj-string'>&quot;m270&quot;</span>","value":"\"m270\""},{"type":"html","content":"<span class='clj-string'>&quot;rm1021&quot;</span>","value":"\"rm1021\""},{"type":"html","content":"<span class='clj-string'>&quot;rm41&quot;</span>","value":"\"rm41\""},{"type":"html","content":"<span class='clj-string'>&quot;sm11&quot;</span>","value":"\"sm11\""},{"type":"html","content":"<span class='clj-string'>&quot;sm2011&quot;</span>","value":"\"sm2011\""},{"type":"html","content":"<span class='clj-string'>&quot;t073&quot;</span>","value":"\"t073\""},{"type":"html","content":"<span class='clj-string'>&quot;usda1106&quot;</span>","value":"\"usda1106\""},{"type":"html","content":"<span class='clj-string'>&quot;usda1157&quot;</span>","value":"\"usda1157\""}],"value":"(\"ak83\" \"bl225\" \"gr4\" \"hm006\" \"kh35c\" \"kh46c\" \"m270\" \"rm1021\" \"rm41\" \"sm11\" \"sm2011\" \"t073\" \"usda1106\" \"usda1157\")"}
+;; <=
+
+;; @@
+(map 
+  (partial calc-pav accessions)
+  (take-last 5 groups))
+;; @@
+;; =>
+;;; {"type":"list-like","open":"<span class='clj-lazy-seq'>(</span>","close":"<span class='clj-lazy-seq'>)</span>","separator":" ","items":[{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>84</span>","value":"84"},{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1157&quot;</span>","value":"\"usda1157\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1157\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm1021&quot;</span>","value":"\"rm1021\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm1021\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm2011&quot;</span>","value":"\"sm2011\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm2011\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;hm006&quot;</span>","value":"\"hm006\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"hm006\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;bl225&quot;</span>","value":"\"bl225\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"bl225\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;ak83&quot;</span>","value":"\"ak83\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"ak83\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;t073&quot;</span>","value":"\"t073\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"t073\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh46c&quot;</span>","value":"\"kh46c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh46c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh35c&quot;</span>","value":"\"kh35c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh35c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm41&quot;</span>","value":"\"rm41\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm41\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;m270&quot;</span>","value":"\"m270\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"m270\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1106&quot;</span>","value":"\"usda1106\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1106\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm11&quot;</span>","value":"\"sm11\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm11\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;gr4&quot;</span>","value":"\"gr4\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"gr4\" 1]"}],"value":"{\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}"}],"value":"[84 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>1938</span>","value":"1938"},{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1157&quot;</span>","value":"\"usda1157\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1157\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm1021&quot;</span>","value":"\"rm1021\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm1021\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm2011&quot;</span>","value":"\"sm2011\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm2011\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;hm006&quot;</span>","value":"\"hm006\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"hm006\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;bl225&quot;</span>","value":"\"bl225\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"bl225\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;ak83&quot;</span>","value":"\"ak83\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"ak83\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;t073&quot;</span>","value":"\"t073\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"t073\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh46c&quot;</span>","value":"\"kh46c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh46c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh35c&quot;</span>","value":"\"kh35c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh35c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm41&quot;</span>","value":"\"rm41\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm41\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;m270&quot;</span>","value":"\"m270\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"m270\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1106&quot;</span>","value":"\"usda1106\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1106\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm11&quot;</span>","value":"\"sm11\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm11\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;gr4&quot;</span>","value":"\"gr4\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"gr4\" 1]"}],"value":"{\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}"}],"value":"[1938 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>3708</span>","value":"3708"},{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1157&quot;</span>","value":"\"usda1157\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1157\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm1021&quot;</span>","value":"\"rm1021\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm1021\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm2011&quot;</span>","value":"\"sm2011\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm2011\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;hm006&quot;</span>","value":"\"hm006\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"hm006\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;bl225&quot;</span>","value":"\"bl225\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"bl225\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;ak83&quot;</span>","value":"\"ak83\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"ak83\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;t073&quot;</span>","value":"\"t073\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"t073\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh46c&quot;</span>","value":"\"kh46c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh46c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh35c&quot;</span>","value":"\"kh35c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh35c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm41&quot;</span>","value":"\"rm41\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm41\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;m270&quot;</span>","value":"\"m270\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"m270\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1106&quot;</span>","value":"\"usda1106\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1106\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm11&quot;</span>","value":"\"sm11\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm11\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;gr4&quot;</span>","value":"\"gr4\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"gr4\" 1]"}],"value":"{\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}"}],"value":"[3708 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>6181</span>","value":"6181"},{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1157&quot;</span>","value":"\"usda1157\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"usda1157\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm1021&quot;</span>","value":"\"rm1021\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm1021\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm2011&quot;</span>","value":"\"sm2011\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm2011\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;hm006&quot;</span>","value":"\"hm006\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"hm006\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;bl225&quot;</span>","value":"\"bl225\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"bl225\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;ak83&quot;</span>","value":"\"ak83\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"ak83\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;t073&quot;</span>","value":"\"t073\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"t073\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh46c&quot;</span>","value":"\"kh46c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh46c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh35c&quot;</span>","value":"\"kh35c\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"kh35c\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm41&quot;</span>","value":"\"rm41\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"rm41\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;m270&quot;</span>","value":"\"m270\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"m270\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1106&quot;</span>","value":"\"usda1106\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1106\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm11&quot;</span>","value":"\"sm11\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"sm11\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;gr4&quot;</span>","value":"\"gr4\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"gr4\" 0]"}],"value":"{\"usda1157\" 0, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 0, \"bl225\" 0, \"ak83\" 0, \"t073\" 0, \"kh46c\" 1, \"kh35c\" 0, \"rm41\" 0, \"m270\" 0, \"usda1106\" 1, \"sm11\" 0, \"gr4\" 0}"}],"value":"[6181 {\"usda1157\" 0, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 0, \"bl225\" 0, \"ak83\" 0, \"t073\" 0, \"kh46c\" 1, \"kh35c\" 0, \"rm41\" 0, \"m270\" 0, \"usda1106\" 1, \"sm11\" 0, \"gr4\" 0}]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>4274</span>","value":"4274"},{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1157&quot;</span>","value":"\"usda1157\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1157\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm1021&quot;</span>","value":"\"rm1021\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm1021\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm2011&quot;</span>","value":"\"sm2011\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm2011\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;hm006&quot;</span>","value":"\"hm006\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"hm006\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;bl225&quot;</span>","value":"\"bl225\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"bl225\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;ak83&quot;</span>","value":"\"ak83\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"ak83\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;t073&quot;</span>","value":"\"t073\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"t073\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh46c&quot;</span>","value":"\"kh46c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh46c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh35c&quot;</span>","value":"\"kh35c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh35c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm41&quot;</span>","value":"\"rm41\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm41\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;m270&quot;</span>","value":"\"m270\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"m270\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1106&quot;</span>","value":"\"usda1106\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1106\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm11&quot;</span>","value":"\"sm11\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm11\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;gr4&quot;</span>","value":"\"gr4\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"gr4\" 1]"}],"value":"{\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}"}],"value":"[4274 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}]"}],"value":"([84 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}] [1938 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}] [3708 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}] [6181 {\"usda1157\" 0, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 0, \"bl225\" 0, \"ak83\" 0, \"t073\" 0, \"kh46c\" 1, \"kh35c\" 0, \"rm41\" 0, \"m270\" 0, \"usda1106\" 1, \"sm11\" 0, \"gr4\" 0}] [4274 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}])"}
+;; <=
+
+;; **
+;;; #### Get Single Copy Core Genes
+;; **
+
+;; @@
+(def single-copy-core-genes
+  (filter 
+    (fn [[group-id accessions-count]]
+      (every? 
+        (fn [x] (= 1 x))
+        (vals accessions-count)))
+  (map (partial calc-cnv accessions) groups)))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;pleasant-winds/single-copy-core-genes</span>","value":"#'pleasant-winds/single-copy-core-genes"}
+;; <=
+
+;; @@
+(take 5 single-copy-core-genes)
+;; @@
+;; =>
+;;; {"type":"list-like","open":"<span class='clj-lazy-seq'>(</span>","close":"<span class='clj-lazy-seq'>)</span>","separator":" ","items":[{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>2721</span>","value":"2721"},{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1157&quot;</span>","value":"\"usda1157\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1157\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm1021&quot;</span>","value":"\"rm1021\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm1021\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm2011&quot;</span>","value":"\"sm2011\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm2011\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;hm006&quot;</span>","value":"\"hm006\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"hm006\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;bl225&quot;</span>","value":"\"bl225\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"bl225\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;ak83&quot;</span>","value":"\"ak83\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"ak83\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;t073&quot;</span>","value":"\"t073\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"t073\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh46c&quot;</span>","value":"\"kh46c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh46c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh35c&quot;</span>","value":"\"kh35c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh35c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm41&quot;</span>","value":"\"rm41\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm41\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;m270&quot;</span>","value":"\"m270\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"m270\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1106&quot;</span>","value":"\"usda1106\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1106\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm11&quot;</span>","value":"\"sm11\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm11\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;gr4&quot;</span>","value":"\"gr4\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"gr4\" 1]"}],"value":"{\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}"}],"value":"[2721 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>2558</span>","value":"2558"},{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1157&quot;</span>","value":"\"usda1157\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1157\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm1021&quot;</span>","value":"\"rm1021\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm1021\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm2011&quot;</span>","value":"\"sm2011\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm2011\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;hm006&quot;</span>","value":"\"hm006\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"hm006\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;bl225&quot;</span>","value":"\"bl225\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"bl225\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;ak83&quot;</span>","value":"\"ak83\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"ak83\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;t073&quot;</span>","value":"\"t073\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"t073\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh46c&quot;</span>","value":"\"kh46c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh46c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh35c&quot;</span>","value":"\"kh35c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh35c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm41&quot;</span>","value":"\"rm41\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm41\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;m270&quot;</span>","value":"\"m270\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"m270\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1106&quot;</span>","value":"\"usda1106\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1106\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm11&quot;</span>","value":"\"sm11\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm11\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;gr4&quot;</span>","value":"\"gr4\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"gr4\" 1]"}],"value":"{\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}"}],"value":"[2558 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>3359</span>","value":"3359"},{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1157&quot;</span>","value":"\"usda1157\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1157\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm1021&quot;</span>","value":"\"rm1021\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm1021\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm2011&quot;</span>","value":"\"sm2011\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm2011\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;hm006&quot;</span>","value":"\"hm006\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"hm006\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;bl225&quot;</span>","value":"\"bl225\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"bl225\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;ak83&quot;</span>","value":"\"ak83\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"ak83\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;t073&quot;</span>","value":"\"t073\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"t073\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh46c&quot;</span>","value":"\"kh46c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh46c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh35c&quot;</span>","value":"\"kh35c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh35c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm41&quot;</span>","value":"\"rm41\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm41\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;m270&quot;</span>","value":"\"m270\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"m270\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1106&quot;</span>","value":"\"usda1106\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1106\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm11&quot;</span>","value":"\"sm11\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm11\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;gr4&quot;</span>","value":"\"gr4\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"gr4\" 1]"}],"value":"{\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}"}],"value":"[3359 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>3616</span>","value":"3616"},{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1157&quot;</span>","value":"\"usda1157\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1157\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm1021&quot;</span>","value":"\"rm1021\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm1021\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm2011&quot;</span>","value":"\"sm2011\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm2011\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;hm006&quot;</span>","value":"\"hm006\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"hm006\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;bl225&quot;</span>","value":"\"bl225\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"bl225\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;ak83&quot;</span>","value":"\"ak83\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"ak83\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;t073&quot;</span>","value":"\"t073\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"t073\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh46c&quot;</span>","value":"\"kh46c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh46c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh35c&quot;</span>","value":"\"kh35c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh35c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm41&quot;</span>","value":"\"rm41\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm41\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;m270&quot;</span>","value":"\"m270\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"m270\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1106&quot;</span>","value":"\"usda1106\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1106\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm11&quot;</span>","value":"\"sm11\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm11\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;gr4&quot;</span>","value":"\"gr4\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"gr4\" 1]"}],"value":"{\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}"}],"value":"[3616 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>2671</span>","value":"2671"},{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1157&quot;</span>","value":"\"usda1157\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1157\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm1021&quot;</span>","value":"\"rm1021\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm1021\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm2011&quot;</span>","value":"\"sm2011\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm2011\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;hm006&quot;</span>","value":"\"hm006\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"hm006\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;bl225&quot;</span>","value":"\"bl225\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"bl225\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;ak83&quot;</span>","value":"\"ak83\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"ak83\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;t073&quot;</span>","value":"\"t073\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"t073\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh46c&quot;</span>","value":"\"kh46c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh46c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh35c&quot;</span>","value":"\"kh35c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh35c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm41&quot;</span>","value":"\"rm41\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm41\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;m270&quot;</span>","value":"\"m270\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"m270\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1106&quot;</span>","value":"\"usda1106\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1106\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm11&quot;</span>","value":"\"sm11\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm11\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;gr4&quot;</span>","value":"\"gr4\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"gr4\" 1]"}],"value":"{\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}"}],"value":"[2671 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}]"}],"value":"([2721 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}] [2558 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}] [3359 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}] [3616 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}] [2671 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}])"}
+;; <=
+
+;; @@
+(take 5 (map first single-copy-core-genes))
+;; @@
+;; =>
+;;; {"type":"list-like","open":"<span class='clj-lazy-seq'>(</span>","close":"<span class='clj-lazy-seq'>)</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>2721</span>","value":"2721"},{"type":"html","content":"<span class='clj-long'>2558</span>","value":"2558"},{"type":"html","content":"<span class='clj-long'>3359</span>","value":"3359"},{"type":"html","content":"<span class='clj-long'>3616</span>","value":"3616"},{"type":"html","content":"<span class='clj-long'>2671</span>","value":"2671"}],"value":"(2721 2558 3359 3616 2671)"}
+;; <=
+
+;; **
+;;; ### Get CNV
+;; **
+
+;; @@
+(map (partial calc-cnv accessions) (take 5 groups))
+;; @@
+;; =>
+;;; {"type":"list-like","open":"<span class='clj-lazy-seq'>(</span>","close":"<span class='clj-lazy-seq'>)</span>","separator":" ","items":[{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1157&quot;</span>","value":"\"usda1157\""},{"type":"html","content":"<span class='clj-long'>97</span>","value":"97"}],"value":"[\"usda1157\" 97]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm1021&quot;</span>","value":"\"rm1021\""},{"type":"html","content":"<span class='clj-long'>99</span>","value":"99"}],"value":"[\"rm1021\" 99]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm2011&quot;</span>","value":"\"sm2011\""},{"type":"html","content":"<span class='clj-long'>97</span>","value":"97"}],"value":"[\"sm2011\" 97]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;hm006&quot;</span>","value":"\"hm006\""},{"type":"html","content":"<span class='clj-long'>95</span>","value":"95"}],"value":"[\"hm006\" 95]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;bl225&quot;</span>","value":"\"bl225\""},{"type":"html","content":"<span class='clj-long'>96</span>","value":"96"}],"value":"[\"bl225\" 96]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;ak83&quot;</span>","value":"\"ak83\""},{"type":"html","content":"<span class='clj-long'>91</span>","value":"91"}],"value":"[\"ak83\" 91]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;t073&quot;</span>","value":"\"t073\""},{"type":"html","content":"<span class='clj-long'>94</span>","value":"94"}],"value":"[\"t073\" 94]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh46c&quot;</span>","value":"\"kh46c\""},{"type":"html","content":"<span class='clj-long'>96</span>","value":"96"}],"value":"[\"kh46c\" 96]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh35c&quot;</span>","value":"\"kh35c\""},{"type":"html","content":"<span class='clj-long'>97</span>","value":"97"}],"value":"[\"kh35c\" 97]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm41&quot;</span>","value":"\"rm41\""},{"type":"html","content":"<span class='clj-long'>109</span>","value":"109"}],"value":"[\"rm41\" 109]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;m270&quot;</span>","value":"\"m270\""},{"type":"html","content":"<span class='clj-long'>99</span>","value":"99"}],"value":"[\"m270\" 99]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1106&quot;</span>","value":"\"usda1106\""},{"type":"html","content":"<span class='clj-long'>97</span>","value":"97"}],"value":"[\"usda1106\" 97]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm11&quot;</span>","value":"\"sm11\""},{"type":"html","content":"<span class='clj-long'>94</span>","value":"94"}],"value":"[\"sm11\" 94]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;gr4&quot;</span>","value":"\"gr4\""},{"type":"html","content":"<span class='clj-long'>98</span>","value":"98"}],"value":"[\"gr4\" 98]"}],"value":"{\"usda1157\" 97, \"rm1021\" 99, \"sm2011\" 97, \"hm006\" 95, \"bl225\" 96, \"ak83\" 91, \"t073\" 94, \"kh46c\" 96, \"kh35c\" 97, \"rm41\" 109, \"m270\" 99, \"usda1106\" 97, \"sm11\" 94, \"gr4\" 98}"}],"value":"[0 {\"usda1157\" 97, \"rm1021\" 99, \"sm2011\" 97, \"hm006\" 95, \"bl225\" 96, \"ak83\" 91, \"t073\" 94, \"kh46c\" 96, \"kh35c\" 97, \"rm41\" 109, \"m270\" 99, \"usda1106\" 97, \"sm11\" 94, \"gr4\" 98}]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>6398</span>","value":"6398"},{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1157&quot;</span>","value":"\"usda1157\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"usda1157\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm1021&quot;</span>","value":"\"rm1021\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm1021\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm2011&quot;</span>","value":"\"sm2011\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm2011\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;hm006&quot;</span>","value":"\"hm006\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"hm006\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;bl225&quot;</span>","value":"\"bl225\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"bl225\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;ak83&quot;</span>","value":"\"ak83\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"ak83\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;t073&quot;</span>","value":"\"t073\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"t073\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh46c&quot;</span>","value":"\"kh46c\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"kh46c\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh35c&quot;</span>","value":"\"kh35c\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"kh35c\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm41&quot;</span>","value":"\"rm41\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"rm41\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;m270&quot;</span>","value":"\"m270\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"m270\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1106&quot;</span>","value":"\"usda1106\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1106\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm11&quot;</span>","value":"\"sm11\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"sm11\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;gr4&quot;</span>","value":"\"gr4\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"gr4\" 0]"}],"value":"{\"usda1157\" 0, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 0, \"bl225\" 0, \"ak83\" 0, \"t073\" 0, \"kh46c\" 0, \"kh35c\" 0, \"rm41\" 0, \"m270\" 0, \"usda1106\" 1, \"sm11\" 0, \"gr4\" 0}"}],"value":"[6398 {\"usda1157\" 0, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 0, \"bl225\" 0, \"ak83\" 0, \"t073\" 0, \"kh46c\" 0, \"kh35c\" 0, \"rm41\" 0, \"m270\" 0, \"usda1106\" 1, \"sm11\" 0, \"gr4\" 0}]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>2721</span>","value":"2721"},{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1157&quot;</span>","value":"\"usda1157\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1157\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm1021&quot;</span>","value":"\"rm1021\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm1021\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm2011&quot;</span>","value":"\"sm2011\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm2011\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;hm006&quot;</span>","value":"\"hm006\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"hm006\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;bl225&quot;</span>","value":"\"bl225\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"bl225\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;ak83&quot;</span>","value":"\"ak83\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"ak83\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;t073&quot;</span>","value":"\"t073\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"t073\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh46c&quot;</span>","value":"\"kh46c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh46c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh35c&quot;</span>","value":"\"kh35c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh35c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm41&quot;</span>","value":"\"rm41\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm41\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;m270&quot;</span>","value":"\"m270\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"m270\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1106&quot;</span>","value":"\"usda1106\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"usda1106\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm11&quot;</span>","value":"\"sm11\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"sm11\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;gr4&quot;</span>","value":"\"gr4\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"gr4\" 1]"}],"value":"{\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}"}],"value":"[2721 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>6874</span>","value":"6874"},{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1157&quot;</span>","value":"\"usda1157\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"usda1157\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm1021&quot;</span>","value":"\"rm1021\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"rm1021\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm2011&quot;</span>","value":"\"sm2011\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"sm2011\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;hm006&quot;</span>","value":"\"hm006\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"hm006\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;bl225&quot;</span>","value":"\"bl225\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"bl225\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;ak83&quot;</span>","value":"\"ak83\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"ak83\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;t073&quot;</span>","value":"\"t073\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"t073\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh46c&quot;</span>","value":"\"kh46c\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"kh46c\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh35c&quot;</span>","value":"\"kh35c\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"kh35c\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm41&quot;</span>","value":"\"rm41\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"rm41\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;m270&quot;</span>","value":"\"m270\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"m270\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1106&quot;</span>","value":"\"usda1106\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"usda1106\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm11&quot;</span>","value":"\"sm11\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"sm11\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;gr4&quot;</span>","value":"\"gr4\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"gr4\" 0]"}],"value":"{\"usda1157\" 0, \"rm1021\" 0, \"sm2011\" 0, \"hm006\" 0, \"bl225\" 0, \"ak83\" 0, \"t073\" 0, \"kh46c\" 0, \"kh35c\" 1, \"rm41\" 1, \"m270\" 0, \"usda1106\" 0, \"sm11\" 0, \"gr4\" 0}"}],"value":"[6874 {\"usda1157\" 0, \"rm1021\" 0, \"sm2011\" 0, \"hm006\" 0, \"bl225\" 0, \"ak83\" 0, \"t073\" 0, \"kh46c\" 0, \"kh35c\" 1, \"rm41\" 1, \"m270\" 0, \"usda1106\" 0, \"sm11\" 0, \"gr4\" 0}]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>5937</span>","value":"5937"},{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1157&quot;</span>","value":"\"usda1157\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"usda1157\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm1021&quot;</span>","value":"\"rm1021\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"rm1021\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm2011&quot;</span>","value":"\"sm2011\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"sm2011\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;hm006&quot;</span>","value":"\"hm006\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"hm006\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;bl225&quot;</span>","value":"\"bl225\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"bl225\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;ak83&quot;</span>","value":"\"ak83\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"ak83\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;t073&quot;</span>","value":"\"t073\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"t073\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh46c&quot;</span>","value":"\"kh46c\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"kh46c\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;kh35c&quot;</span>","value":"\"kh35c\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"kh35c\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;rm41&quot;</span>","value":"\"rm41\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"rm41\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;m270&quot;</span>","value":"\"m270\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"m270\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;usda1106&quot;</span>","value":"\"usda1106\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"usda1106\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;sm11&quot;</span>","value":"\"sm11\""},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"}],"value":"[\"sm11\" 0]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;gr4&quot;</span>","value":"\"gr4\""},{"type":"html","content":"<span class='clj-long'>3</span>","value":"3"}],"value":"[\"gr4\" 3]"}],"value":"{\"usda1157\" 0, \"rm1021\" 0, \"sm2011\" 0, \"hm006\" 0, \"bl225\" 0, \"ak83\" 0, \"t073\" 1, \"kh46c\" 0, \"kh35c\" 0, \"rm41\" 0, \"m270\" 1, \"usda1106\" 0, \"sm11\" 0, \"gr4\" 3}"}],"value":"[5937 {\"usda1157\" 0, \"rm1021\" 0, \"sm2011\" 0, \"hm006\" 0, \"bl225\" 0, \"ak83\" 0, \"t073\" 1, \"kh46c\" 0, \"kh35c\" 0, \"rm41\" 0, \"m270\" 1, \"usda1106\" 0, \"sm11\" 0, \"gr4\" 3}]"}],"value":"([0 {\"usda1157\" 97, \"rm1021\" 99, \"sm2011\" 97, \"hm006\" 95, \"bl225\" 96, \"ak83\" 91, \"t073\" 94, \"kh46c\" 96, \"kh35c\" 97, \"rm41\" 109, \"m270\" 99, \"usda1106\" 97, \"sm11\" 94, \"gr4\" 98}] [6398 {\"usda1157\" 0, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 0, \"bl225\" 0, \"ak83\" 0, \"t073\" 0, \"kh46c\" 0, \"kh35c\" 0, \"rm41\" 0, \"m270\" 0, \"usda1106\" 1, \"sm11\" 0, \"gr4\" 0}] [2721 {\"usda1157\" 1, \"rm1021\" 1, \"sm2011\" 1, \"hm006\" 1, \"bl225\" 1, \"ak83\" 1, \"t073\" 1, \"kh46c\" 1, \"kh35c\" 1, \"rm41\" 1, \"m270\" 1, \"usda1106\" 1, \"sm11\" 1, \"gr4\" 1}] [6874 {\"usda1157\" 0, \"rm1021\" 0, \"sm2011\" 0, \"hm006\" 0, \"bl225\" 0, \"ak83\" 0, \"t073\" 0, \"kh46c\" 0, \"kh35c\" 1, \"rm41\" 1, \"m270\" 0, \"usda1106\" 0, \"sm11\" 0, \"gr4\" 0}] [5937 {\"usda1157\" 0, \"rm1021\" 0, \"sm2011\" 0, \"hm006\" 0, \"bl225\" 0, \"ak83\" 0, \"t073\" 1, \"kh46c\" 0, \"kh35c\" 0, \"rm41\" 0, \"m270\" 1, \"usda1106\" 0, \"sm11\" 0, \"gr4\" 3}])"}
+;; <=
+
+;; **
+;;; ### Identify conserved groups
+;; **
+
+;; @@
+(defn find-conserved-groups
+  [accessions groups]
+  (remove nil?
+    (map
+      (fn [[group-id proteins]]
+        (if (= (count accessions) (reduce + (vals proteins)))
+          group-id))
+      (map (partial calc-pav accessions) groups))))
+
+(def conserved-groups (find-conserved-groups accessions groups))
+(def conserved-groups-main 
+  (find-conserved-groups accessions groups-main))
+
+(def conserved-groups-psyma
+  (find-conserved-groups accessions groups-psyma))
+
+(def conserved-groups-psymb
+  (find-conserved-groups accessions groups-psymb))
+
+(def conserved-groups-psyma-acc
+  (find-conserved-groups accessions groups-psyma-acc))
+
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;pleasant-winds/conserved-groups-psyma-acc</span>","value":"#'pleasant-winds/conserved-groups-psyma-acc"}
+;; <=
+
+;; @@
+[(count conserved-groups)
+ (count conserved-groups-main)
+ (count conserved-groups-psyma)
+ (count conserved-groups-psymb)
+ (count conserved-groups-psyma-acc)]
+;; @@
+;; =>
+;;; {"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-unkown'>4389</span>","value":"4389"},{"type":"html","content":"<span class='clj-unkown'>2734</span>","value":"2734"},{"type":"html","content":"<span class='clj-unkown'>536</span>","value":"536"},{"type":"html","content":"<span class='clj-unkown'>1255</span>","value":"1255"},{"type":"html","content":"<span class='clj-unkown'>553</span>","value":"553"}],"value":"[4389 2734 536 1255 553]"}
+;; <=
+
+;; **
+;;; ## Get core-genome curve
+;; **
+
+;; @@
+(defn find-conserved-groups-cnt
+  [accessions cnt groups]
+  (remove nil?
+    (map
+      (fn [[group-id proteins]]
+        (if (<= cnt (reduce + (vals proteins)))
+          group-id))
+      (map (partial calc-pav accessions) groups))))
+
+(defn find-conserved-groups-curve
+  [accessions groups]
+  (for [i (range 0 (inc (count accessions)))]
+    [i (count (find-conserved-groups-cnt accessions i groups))]))
+        
+
+(def conserved-groups-curve (find-conserved-groups-curve accessions groups))
+
+(def conserved-groups-main-curve
+  (find-conserved-groups-curve accessions groups-main))
+
+(def conserved-groups-psyma-curve
+  (find-conserved-groups-curve accessions groups-psyma))
+
+(def conserved-groups-psyma-acc-curve
+  (find-conserved-groups-curve accessions groups-psyma-acc))
+
+(def conserved-groups-psymb-curve
+  (find-conserved-groups-curve accessions groups-psymb))
+
+
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;pleasant-winds/conserved-groups-psymb-curve</span>","value":"#'pleasant-winds/conserved-groups-psymb-curve"}
+;; <=
+
+;; @@
+(mat/shape pav-matrix)
+;; @@
+;; =>
+;;; {"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>16</span>","value":"16"},{"type":"html","content":"<span class='clj-long'>7182</span>","value":"7182"}],"value":"[16 7182]"}
+;; <=
+
+;; @@
+(defn count-core-genes [rs]
+  (let [m (mat/transpose
+            (mat/array
+              (for [row rs]
+                (mat/get-row pav-matrix row))))]
+    (->> m
+      (mat/rows)
+      (map (fn [x] 
+             (if (every? (fn [y] (= y 1.0)) x)
+               1.0
+               0.0)))
+      (reduce +))))
+
+(defn count-total-genes [rs]
+  (let [m (mat/transpose
+            (mat/array
+              (for [row rs]
+                (mat/get-row pav-matrix row))))]
+    (->> m
+      (mat/rows)
+      (map (fn [x] 
+             (if (some (fn [y] (= y 1.0)) x)
+               1.0
+               0.0)))
+      (reduce +))))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;pleasant-winds/count-total-genes</span>","value":"#'pleasant-winds/count-total-genes"}
+;; <=
+
+;; @@
+; Set All, Main, pSymA, pSymB here by changing groups at the end
+
+(let [row-labels (keys (second (calc-pav accessions (first groups-psymb))))
+      col-labels (map first (map (partial calc-pav accessions) groups-psymb))]
+  (def row-labels row-labels)
+  (def col-labels col-labels)
+  (def pav-matrix 
+    (mat/transpose
+      (mat/matrix
+        (map
+          (fn [[_ x]]
+            (for [acc accessions]
+              (get x acc)))
+          (map
+            (partial calc-pav accessions) 
+            groups-main))))))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;pleasant-winds/pav-matrix</span>","value":"#'pleasant-winds/pav-matrix"}
+;; <=
+
+;; @@
+(with-open [w (clojure.java.io/writer "core-main-genome.tsv")]
+  (doseq [x
+          (for [c (range 1 (+ 1 (first (mat/shape pav-matrix))))
+                sample-set (combo/combinations (range 0 (first (mat/shape pav-matrix))) c)]
+            [c (count-core-genes sample-set)])]
+    (.write w (clojure.string/join "\t" x))
+    (.write w "\n")))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-nil'>nil</span>","value":"nil"}
+;; <=
+
+;; @@
+(with-open [w (clojure.java.io/writer "pan-main-genome.tsv")]
+  (doseq [x
+          (for [c (range 1 (+ 1 (first (mat/shape pav-matrix))))
+                sample-set (combo/combinations (range 0 (first (mat/shape pav-matrix))) c)]
+            [c (count-total-genes sample-set)])]
+    (.write w (clojure.string/join "\t" x))
+    (.write w "\n")))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-nil'>nil</span>","value":"nil"}
+;; <=
+
+;; @@
+
+;; @@
+
+;; @@
+row-labels (keys (second (calc-pav accessions (first groups-psymb))))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-unkown'>(&quot;usda1157&quot; &quot;rm1021&quot; &quot;sm2011&quot; &quot;hm006&quot; &quot;usda1021&quot; &quot;bl225&quot; &quot;ak83&quot; &quot;t073&quot; &quot;kh46c&quot; &quot;kh35c&quot; &quot;rm41&quot; &quot;m270&quot; &quot;m162&quot; &quot;usda1106&quot; &quot;sm11&quot; &quot;gr4&quot;)</span>","value":"(\"usda1157\" \"rm1021\" \"sm2011\" \"hm006\" \"usda1021\" \"bl225\" \"ak83\" \"t073\" \"kh46c\" \"kh35c\" \"rm41\" \"m270\" \"m162\" \"usda1106\" \"sm11\" \"gr4\")"}
+;; <=
+
+;; @@
+[(count-core-genes [0])
+ (count-core-genes [1])
+ (count-core-genes [2])
+ (count-core-genes [3])
+ (count-core-genes [4])
+ (count-core-genes [5])
+ (count-core-genes [6])
+ (count-core-genes [7])
+ (count-core-genes [8])
+ (count-core-genes [9])
+ (count-core-genes [10])
+ (count-core-genes [11])
+ (count-core-genes [12])
+ (count-core-genes [13])
+ (count-core-genes [14])
+ (count-core-genes [15])]
+ 
+;; @@
+;; =>
+;;; {"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-double'>445.0</span>","value":"445.0"},{"type":"html","content":"<span class='clj-double'>1451.0</span>","value":"1451.0"},{"type":"html","content":"<span class='clj-double'>1436.0</span>","value":"1436.0"},{"type":"html","content":"<span class='clj-double'>1396.0</span>","value":"1396.0"},{"type":"html","content":"<span class='clj-double'>1403.0</span>","value":"1403.0"},{"type":"html","content":"<span class='clj-double'>1446.0</span>","value":"1446.0"},{"type":"html","content":"<span class='clj-double'>1433.0</span>","value":"1433.0"},{"type":"html","content":"<span class='clj-double'>1473.0</span>","value":"1473.0"},{"type":"html","content":"<span class='clj-double'>1453.0</span>","value":"1453.0"},{"type":"html","content":"<span class='clj-double'>1431.0</span>","value":"1431.0"},{"type":"html","content":"<span class='clj-double'>1424.0</span>","value":"1424.0"},{"type":"html","content":"<span class='clj-double'>1453.0</span>","value":"1453.0"},{"type":"html","content":"<span class='clj-double'>1435.0</span>","value":"1435.0"},{"type":"html","content":"<span class='clj-double'>1440.0</span>","value":"1440.0"},{"type":"html","content":"<span class='clj-double'>1452.0</span>","value":"1452.0"},{"type":"html","content":"<span class='clj-double'>1449.0</span>","value":"1449.0"}],"value":"[445.0 1451.0 1436.0 1396.0 1403.0 1446.0 1433.0 1473.0 1453.0 1431.0 1424.0 1453.0 1435.0 1440.0 1452.0 1449.0]"}
+;; <=
+
+;; @@
+()
+;; @@

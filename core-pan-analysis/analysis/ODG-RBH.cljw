@@ -1,0 +1,147 @@
+;; gorilla-repl.fileformat = 1
+
+;; **
+;;; # Gorilla REPL
+;;; 
+;;; Welcome to gorilla :-)
+;;; 
+;;; Shift + enter evaluates code. Hit alt+g twice in quick succession or click the menu icon (upper-right corner) for more commands ...
+;;; 
+;;; It's a good habit to run each worksheet in its own namespace: feel free to use the declaration we've provided below if you'd like.
+;; **
+
+;; @@
+(ns charming-peak
+  (:require [gorilla-plot.core :as plot]
+;            [digest :as digest]
+;            [biotools.fasta :as fasta]
+            [clojure.core.matrix :as mat]
+;            [incanter.io :as iio]
+;            [me.raynes.fs :as fs]
+;            [clojure.math.combinatorics :as combo]
+;            [clojure.core.matrix.dataset :refer :all]
+;            [clojure.core.matrix.operators :refer :all]
+            [odg.db :as db]
+            ))
+   
+  
+(mat/set-current-implementation :vectorz)
+
+(defn split-first [re s]
+  (clojure.string/split s re 2))
+
+(defn split-last [s re]
+  (let [pattern (re-pattern (str re "(?!.*" re ")"))]
+    (split-first pattern s)))
+
+(defn get-replicon [id]
+  (first (split-last id #"_")))
+
+(get-replicon "USDA1106_Accessory_A_1064")
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-string'>&quot;USDA1106_Accessory_A&quot;</span>","value":"\"USDA1106_Accessory_A\""}
+;; <=
+
+;; **
+;;; ## Connect to ODG
+;; **
+
+;; @@
+(db/connect "../../odg2/sinopaper" "4G")
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-nil'>nil</span>","value":"nil"}
+;; <=
+
+;; @@
+; BSR is 1-based, so 0.99 is 99%
+; 
+
+(def a
+(db/query
+  "MATCH (x)-[r:BLASTP_RECIPROCAL_TOP_HIT]-(y)
+   WITH x, x.version AS qversion,x.id AS qid, COUNT(DISTINCT(y.version)) as strains
+     WHERE strains = 15
+   WITH x, qversion, qid
+   MATCH (x)-[BLASTP_RECIPROCAL_TOP_HIT]-(y), (x)-[r:BLASTP_TOP_HIT]-(y)
+     WHERE r.bsr >= 1 AND x.version <> y.version 
+   RETURN DISTINCT x.id, qversion, y.id, y.version, MAX(r.bitscore) as bitscore"
+  {}
+  (into 
+    []
+    (doall
+      (map 
+        (fn [x]
+          [[(get x "qversion")
+           (get x "x.id")]
+           [(get x "y.version")
+           (get x "y.id")]]
+          )
+        results)))))
+
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;charming-peak/a</span>","value":"#'charming-peak/a"}
+;; <=
+
+;; @@
+; Must be single copy core genes
+; So exactly 15 copies (none in overlapping accessions, which we already get)
+(def b
+  (filter 
+    (fn [[x y]] (= 15 (count y)))
+    (for [[i x] (group-by first a)]
+      [i (map second x)])))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;charming-peak/b</span>","value":"#'charming-peak/b"}
+;; <=
+
+;; @@
+(count b)
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-unkown'>9832</span>","value":"9832"}
+;; <=
+
+;; @@
+(def filtered
+  (filter 
+    (fn [[x y]]
+      (>= (count y) 2))
+    (for [[i x] b]
+      [(sort (conj x i))
+       (frequencies
+           (conj
+             (map (comp get-replicon second) x)
+             (get-replicon (second i))))])))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;charming-peak/filtered</span>","value":"#'charming-peak/filtered"}
+;; <=
+
+;; @@
+[(count filtered) (count (distinct filtered))]
+;; @@
+;; =>
+;;; {"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-unkown'>1548</span>","value":"1548"},{"type":"html","content":"<span class='clj-unkown'>102</span>","value":"102"}],"value":"[1548 102]"}
+;; <=
+
+;; @@
+(sort-by second (frequencies (map second (distinct filtered))))
+;; @@
+;; =>
+;;; {"type":"list-like","open":"<span class='clj-list'>(</span>","close":"<span class='clj-list'>)</span>","separator":" ","items":[{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;pSymA&quot;</span>","value":"\"pSymA\""},{"type":"html","content":"<span class='clj-long'>15</span>","value":"15"}],"value":"[\"pSymA\" 15]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;pSINME01&quot;</span>","value":"\"pSINME01\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"pSINME01\" 1]"}],"value":"{\"pSymA\" 15, \"pSINME01\" 1}"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[{\"pSymA\" 15, \"pSINME01\" 1} 1]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;Main&quot;</span>","value":"\"Main\""},{"type":"html","content":"<span class='clj-long'>6</span>","value":"6"}],"value":"[\"Main\" 6]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;pSymB&quot;</span>","value":"\"pSymB\""},{"type":"html","content":"<span class='clj-long'>10</span>","value":"10"}],"value":"[\"pSymB\" 10]"}],"value":"{\"Main\" 6, \"pSymB\" 10}"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[{\"Main\" 6, \"pSymB\" 10} 1]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;pSymA&quot;</span>","value":"\"pSymA\""},{"type":"html","content":"<span class='clj-long'>5</span>","value":"5"}],"value":"[\"pSymA\" 5]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;pSymB&quot;</span>","value":"\"pSymB\""},{"type":"html","content":"<span class='clj-long'>11</span>","value":"11"}],"value":"[\"pSymB\" 11]"}],"value":"{\"pSymA\" 5, \"pSymB\" 11}"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[{\"pSymA\" 5, \"pSymB\" 11} 1]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;pSymA&quot;</span>","value":"\"pSymA\""},{"type":"html","content":"<span class='clj-long'>14</span>","value":"14"}],"value":"[\"pSymA\" 14]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;pSymB&quot;</span>","value":"\"pSymB\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"pSymB\" 1]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;M162_Accessory_A&quot;</span>","value":"\"M162_Accessory_A\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"M162_Accessory_A\" 1]"}],"value":"{\"pSymA\" 14, \"pSymB\" 1, \"M162_Accessory_A\" 1}"},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[{\"pSymA\" 14, \"pSymB\" 1, \"M162_Accessory_A\" 1} 1]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;pSymA&quot;</span>","value":"\"pSymA\""},{"type":"html","content":"<span class='clj-long'>15</span>","value":"15"}],"value":"[\"pSymA\" 15]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;pSymB&quot;</span>","value":"\"pSymB\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"pSymB\" 1]"}],"value":"{\"pSymA\" 15, \"pSymB\" 1}"},{"type":"html","content":"<span class='clj-long'>3</span>","value":"3"}],"value":"[{\"pSymA\" 15, \"pSymB\" 1} 3]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;Main&quot;</span>","value":"\"Main\""},{"type":"html","content":"<span class='clj-long'>15</span>","value":"15"}],"value":"[\"Main\" 15]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;pSymB&quot;</span>","value":"\"pSymB\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"pSymB\" 1]"}],"value":"{\"Main\" 15, \"pSymB\" 1}"},{"type":"html","content":"<span class='clj-long'>33</span>","value":"33"}],"value":"[{\"Main\" 15, \"pSymB\" 1} 33]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"list-like","open":"<span class='clj-map'>{</span>","close":"<span class='clj-map'>}</span>","separator":", ","items":[{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;pSymB&quot;</span>","value":"\"pSymB\""},{"type":"html","content":"<span class='clj-long'>15</span>","value":"15"}],"value":"[\"pSymB\" 15]"},{"type":"list-like","open":"","close":"","separator":" ","items":[{"type":"html","content":"<span class='clj-string'>&quot;pSymA&quot;</span>","value":"\"pSymA\""},{"type":"html","content":"<span class='clj-long'>1</span>","value":"1"}],"value":"[\"pSymA\" 1]"}],"value":"{\"pSymB\" 15, \"pSymA\" 1}"},{"type":"html","content":"<span class='clj-long'>62</span>","value":"62"}],"value":"[{\"pSymB\" 15, \"pSymA\" 1} 62]"}],"value":"([{\"pSymA\" 15, \"pSINME01\" 1} 1] [{\"Main\" 6, \"pSymB\" 10} 1] [{\"pSymA\" 5, \"pSymB\" 11} 1] [{\"pSymA\" 14, \"pSymB\" 1, \"M162_Accessory_A\" 1} 1] [{\"pSymA\" 15, \"pSymB\" 1} 3] [{\"Main\" 15, \"pSymB\" 1} 33] [{\"pSymB\" 15, \"pSymA\" 1} 62])"}
+;; <=
+
+;; @@
+
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-string'>&quot;USDA1106_Accessory_A&quot;</span>","value":"\"USDA1106_Accessory_A\""}
+;; <=
+
+;; @@
+
+;; @@

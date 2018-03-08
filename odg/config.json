@@ -1,0 +1,687 @@
+{
+  "global": {
+    "ENZYME": "data/misc/enzyme.dat",
+    "MI": "",
+    "GO": "data/misc/go.obo",
+    "mirbase_hairpins": "",
+    "PO": "",
+    "fpkm_minimum": 75,
+    "db_name": "omics database",
+    "pearson_correlation_absolute_cutoff": 0.75,
+    "db_path": "sino.pb.db"
+  },
+  "genomes": {
+    "Sinorhizobium_meliloti_Gr4": {
+      "description": "",
+      "tags": "",
+      "key": "Sinorhizobium_meliloti_Gr4",
+      "taxid": "",
+      "name": "Sinorhizobium meliloti",
+      "proteome": [
+        "Gr4.MainChr.8003.protein.fasta",
+        "Gr4.pSymA.8001.protein.fasta",
+        "Gr4.pSymB.8002.protein.fasta",
+        "Gr4.plasmid.7999.protein.fasta",
+        "Gr4.plasmid.8000.protein.fasta"
+      ],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Sinorhizobium_meliloti_Gr4",
+      "expression_gtf": [],
+      "assembly": [
+        "Gr4.MainChr.8003.fasta",
+        "Gr4.pSymA.8001.fasta",
+        "Gr4.pSymB.8002.fasta",
+        "Gr4.plasmid.7999.fasta",
+        "Gr4.plasmid.8000.fasta"
+      ],
+      "mirbase_prefix": "",
+      "version": "Gr4",
+      "interproscan": [
+        "Gr4.MainChr.8003.ipscan.tsv",
+        "Gr4.pSymA.8001.ipscan.tsv",
+        "Gr4.pSymB.8002.ipscan.tsv",
+        "Gr4.plasmid.7999.ipscan.tsv",
+        "Gr4.plasmid.8000.ipscan.tsv"
+      ],
+      "abbreviation": "Smel",
+      "annotation": [
+        "Gr4.MainChr.8003.cds.gff3",
+        "Gr4.pSymA.8001.gff3",
+        "Gr4.pSymB.8002.gff3",
+        "Gr4.plasmid.7999.gff3",
+        "Gr4.plasmid.8000.gff3"
+      ]
+    },
+    "Repeats": {
+      "description": "",
+      "tags": "",
+      "key": "Repeats",
+      "taxid": "",
+      "name": "Repeats",
+      "proteome": [],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Repeats",
+      "expression_gtf": [],
+      "assembly": [
+        "megaconsensus.fasta"
+      ],
+      "mirbase_prefix": "Repeats",
+      "version": "1",
+      "interproscan": [
+        "megaconsensus.ipscan.tsv"
+      ],
+      "abbreviation": "Repeats",
+      "annotation": [
+        "megaconsensus_genes.gff3"
+      ]
+    },
+    "Sinorhizobium_meliloti_HM006": {
+      "description": "",
+      "tags": "",
+      "key": "Sinorhizobium_meliloti_HM006",
+      "taxid": "",
+      "name": "Sinorhizobium meliloti",
+      "proteome": [
+        "HM006.MainChr.7561.protein.fasta"
+      ],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Sinorhizobium_meliloti_HM006",
+      "expression_gtf": [],
+      "assembly": [
+        "HM006.MainChr.7561.fasta",
+        "HM006.pSymA.7563.fasta",
+        "HM006.pSymB.7562.fasta",
+        "HM006.plasmid.7564.fasta"
+      ],
+      "mirbase_prefix": "",
+      "version": "HM006",
+      "interproscan": [
+        "HM006.MainChr.7561.ipscan.tsv",
+        "HM006.pSymA.7563.ipscan.tsv",
+        "HM006.pSymB.7562.ipscan.tsv",
+        "HM006.plasmid.7564.ipscan.tsv"
+      ],
+      "abbreviation": "Smel",
+      "annotation": [
+        "HM006.MainChr.7561.gff3",
+        "HM006.pSymA.7563.gff3",
+        "HM006.pSymB.7562.gff3",
+        "HM006.plasmid.7564.gff3"
+      ]
+    },
+    "Sinorhizobium_meliloti_Sm11": {
+      "description": "",
+      "tags": "",
+      "key": "Sinorhizobium_meliloti_Sm11",
+      "taxid": "",
+      "name": "Sinorhizobium meliloti",
+      "proteome": [
+        "SM11.MainChr.8007.protein.fasta",
+        "SM11.pSymA.8006.protein.fasta",
+        "SM11.pSymB.8005.protein.fasta"
+      ],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Sinorhizobium_meliloti_Sm11",
+      "expression_gtf": [],
+      "assembly": [
+        "SM11.MainChr.8007.fasta",
+        "SM11.pSymA.8006.fasta",
+        "SM11.pSymB.8005.fasta"
+      ],
+      "mirbase_prefix": "",
+      "version": "Sm11",
+      "interproscan": [
+        "SM11.MainChr.8007.ipscan.tsv",
+        "SM11.pSymA.8006.ipscan.tsv",
+        "SM11.pSymB.8005.ipscan.tsv"
+      ],
+      "abbreviation": "Smel",
+      "annotation": [
+        "SM11.MainChr.8007.cds.gff3"
+      ]
+    },
+    "Sinorhizobium_meliloti_Kh35c": {
+      "description": "",
+      "tags": "",
+      "key": "Sinorhizobium_meliloti_Kh35c",
+      "taxid": "",
+      "name": "Sinorhizobium meliloti",
+      "proteome": [
+        "KH35c.MainChr.7565.protein.fasta",
+        "KH35c.pSymA.7567.protein.fasta",
+        "KH35c.pSymB.7566.protein.fasta",
+        "KH35c.plasmid.7568.protein.fasta"
+      ],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Sinorhizobium_meliloti_Kh35c",
+      "expression_gtf": [],
+      "assembly": [
+        "KH35c.MainChr.7565.fasta",
+        "KH35c.pSymA.7567.fasta",
+        "KH35c.pSymB.7566.fasta",
+        "KH35c.plasmid.7568.fasta"
+      ],
+      "mirbase_prefix": "",
+      "version": "Kh35c",
+      "interproscan": [
+        "KH35c.MainChr.7565.ipscan.tsv",
+        "KH35c.pSymA.7567.ipscan.tsv",
+        "KH35c.pSymB.7566.ipscan.tsv",
+        "KH35c.plasmid.7568.ipscan.tsv"
+      ],
+      "abbreviation": "Smel",
+      "annotation": [
+        "KH35c.MainChr.7565.gff3",
+        "KH35c.pSymA.7567.gff3",
+        "KH35c.pSymB.7566.gff3",
+        "KH35c.plasmid.7568.gff3"
+      ]
+    },
+    "Sinorhizobium_meliloti_Bl225c": {
+      "description": "",
+      "tags": "",
+      "key": "Sinorhizobium_meliloti_Bl225c",
+      "taxid": "",
+      "name": "Sinorhizobium meliloti",
+      "proteome": [
+        "Bl225c.MainChr.7998.protein.fasta",
+        "Bl225c.pSymA.7996.protein.fasta",
+        "Bl225c.pSymB.7997.protein.fasta"
+      ],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Sinorhizobium_meliloti_Bl225c",
+      "expression_gtf": [],
+      "assembly": [
+        "Bl225c.MainChr.7998.fasta",
+        "Bl225c.pSymA.7996.fasta",
+        "Bl225c.pSymB.7997.fasta"
+      ],
+      "mirbase_prefix": "",
+      "version": "Bl225c",
+      "interproscan": [
+        "Bl225c.MainChr.7998.ipscan.tsv",
+        "Bl225c.pSymB.7997.ipscan.tsv"
+      ],
+      "abbreviation": "Smel",
+      "annotation": [
+        "Bl225c.MainChr.7998.gff3",
+        "Bl225c.pSymA.7996.gff3",
+        "Bl225c.pSymB.7997.gff3"
+      ]
+    },
+    "Sinorhizobium_meliloti_USDA1157": {
+      "description": "",
+      "tags": "",
+      "key": "Sinorhizobium_meliloti_USDA1157",
+      "taxid": "",
+      "name": "Sinorhizobium meliloti",
+      "proteome": [
+        "USDA1157.MainChr.7604.protein.fasta",
+        "USDA1157.pSymA.7606.protein.fasta",
+        "USDA1157.pSymB.7605.protein.fasta",
+        "USDA1157.plasmid.7607.protein.fasta"
+      ],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Sinorhizobium_meliloti_USDA1157",
+      "expression_gtf": [],
+      "assembly": [
+        "USDA1157.MainChr.7604.fasta",
+        "USDA1157.pSymA.7606.fasta",
+        "USDA1157.pSymB.7605.fasta",
+        "USDA1157.plasmid.7607.fasta"
+      ],
+      "mirbase_prefix": "",
+      "version": "USDA1157",
+      "interproscan": [
+        "USDA1157.MainChr.7604.ipscan.tsv",
+        "USDA1157.pSymA.7606.ipscan.tsv",
+        "USDA1157.pSymB.7605.ipscan.tsv",
+        "USDA1157.plasmid.7607.ipscan.tsv"
+      ],
+      "abbreviation": "Smel",
+      "annotation": [
+        "USDA1157.MainChr.7604.gff3",
+        "USDA1157.pSymA.7606.gff3",
+        "USDA1157.pSymB.7605.gff3",
+        "USDA1157.plasmid.7607.gff3"
+      ]
+    },
+    "Sinorhizobium_medicae_M2": {
+      "description": "",
+      "tags": "",
+      "key": "Sinorhizobium_medicae_M2",
+      "taxid": "",
+      "name": "Sinorhizobium medicae",
+      "proteome": [
+        "M2.plasmid.7430.protein.fasta",
+        "M2.plasmid.7431.protein.fasta",
+        "M2.plasmid.7432.protein.fasta",
+        "M2.plasmid.7433.protein.fasta"
+      ],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Sinorhizobium_medicae_M2",
+      "expression_gtf": [],
+      "assembly": [
+        "M2.plasmid.7430.fasta",
+        "M2.plasmid.7431.fasta",
+        "M2.plasmid.7432.fasta",
+        "M2.plasmid.7433.fasta"
+      ],
+      "mirbase_prefix": "",
+      "version": "M2",
+      "interproscan": [
+        "M2.plasmid.7430.ipscan.tsv",
+        "M2.plasmid.7431.ipscan.tsv",
+        "M2.plasmid.7432.ipscan.tsv",
+        "M2.plasmid.7433.ipscan.tsv"
+      ],
+      "abbreviation": "Smed",
+      "annotation": [
+        "M2.plasmid.7430.gff3",
+        "M2.plasmid.7431.gff3",
+        "M2.plasmid.7432.gff3",
+        "M2.plasmid.7433.gff3"
+      ]
+    },
+    "Sinorhizobium_meliloti_M270": {
+      "description": "",
+      "tags": "",
+      "key": "Sinorhizobium_meliloti_M270",
+      "taxid": "",
+      "name": "Sinorhizobium meliloti",
+      "proteome": [
+        "M270.MainChr.7579.protein.fasta",
+        "M270.pSymA.7581.protein.fasta",
+        "M270.pSymB.7580.protein.fasta",
+        "M270.plasmid.7582.protein.fasta",
+        "M270.plasmid.7583.protein.fasta",
+        "M270.plasmid.7584.protein.fasta",
+        "M270.plasmid.7585.protein.fasta"
+      ],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Sinorhizobium_meliloti_M270",
+      "expression_gtf": [],
+      "assembly": [
+        "M270.MainChr.7579.fasta",
+        "M270.pSymA.7581.fasta",
+        "M270.pSymB.7580.fasta",
+        "M270.plasmid.7582.fasta",
+        "M270.plasmid.7583.fasta",
+        "M270.plasmid.7584.fasta",
+        "M270.plasmid.7585.fasta"
+      ],
+      "mirbase_prefix": "",
+      "version": "M270",
+      "interproscan": [
+        "M270.MainChr.7579.ipscan.tsv",
+        "M270.pSymA.7581.ipscan.tsv",
+        "M270.pSymB.7580.ipscan.tsv",
+        "M270.plasmid.7582.ipscan.tsv",
+        "M270.plasmid.7583.ipscan.tsv",
+        "M270.plasmid.7584.ipscan.tsv",
+        "M270.plasmid.7585.ipscan.tsv"
+      ],
+      "abbreviation": "Smel",
+      "annotation": [
+        "M270.MainChr.7579.gff3",
+        "M270.pSymA.7581.gff3",
+        "M270.pSymB.7580.gff3",
+        "M270.plasmid.7582.gff3",
+        "M270.plasmid.7583.gff3",
+        "M270.plasmid.7584.gff3",
+        "M270.plasmid.7585.gff3"
+      ]
+    },
+    "Sinorhizobium_meliloti_Kh46c": {
+      "description": "",
+      "tags": "",
+      "key": "Sinorhizobium_meliloti_Kh46c",
+      "taxid": "",
+      "name": "Sinorhizobium meliloti",
+      "proteome": [
+        "KH46c.MainChr.7569.protein.fasta",
+        "KH46c.pSymA.7571.protein.fasta",
+        "KH46c.pSymB.7570.protein.fasta"
+      ],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Sinorhizobium_meliloti_Kh46c",
+      "expression_gtf": [],
+      "assembly": [
+        "KH46c.MainChr.7569.fasta",
+        "KH46c.pSymA.7571.fasta",
+        "KH46c.pSymB.7570.fasta"
+      ],
+      "mirbase_prefix": "",
+      "version": "Kh46c",
+      "interproscan": [
+        "KH46c.MainChr.7569.ipscan.tsv",
+        "KH46c.pSymA.7571.ipscan.tsv",
+        "KH46c.pSymB.7570.ipscan.tsv"
+      ],
+      "abbreviation": "Smel",
+      "annotation": [
+        "KH46c.MainChr.7569.gff3",
+        "KH46c.pSymA.7571.gff3",
+        "KH46c.pSymB.7570.gff3"
+      ]
+    },
+    "Sinorhizobium_meliloti_T073": {
+      "description": "",
+      "tags": "",
+      "key": "Sinorhizobium_meliloti_T073",
+      "taxid": "",
+      "name": "Sinorhizobium meliloti",
+      "proteome": [
+        "T073.MainChr.7590.protein.fasta",
+        "T073.pSymA.7592.protein.fasta",
+        "T073.pSymB.7591.protein.fasta",
+        "T073.plasmid.7593.protein.fasta"
+      ],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Sinorhizobium_meliloti_T073",
+      "expression_gtf": [],
+      "assembly": [
+        "T073.MainChr.7590.fasta",
+        "T073.pSymA.7592.fasta",
+        "T073.pSymB.7591.fasta",
+        "T073.plasmid.7593.fasta"
+      ],
+      "mirbase_prefix": "",
+      "version": "T073",
+      "interproscan": [
+        "T073.MainChr.7590.ipscan.tsv",
+        "T073.pSymA.7592.ipscan.tsv",
+        "T073.pSymB.7591.ipscan.tsv",
+        "T073.plasmid.7593.ipscan.tsv"
+      ],
+      "abbreviation": "Smel",
+      "annotation": [
+        "T073.MainChr.7590.gff3",
+        "T073.pSymA.7592.gff3",
+        "T073.pSymB.7591.gff3",
+        "T073.plasmid.7593.gff3"
+      ]
+    },
+    "Sinorhizobium_meliloti_Sm2011": {
+      "description": "",
+      "tags": "",
+      "key": "Sinorhizobium_meliloti_Sm2011",
+      "taxid": "",
+      "name": "Sinorhizobium meliloti",
+      "proteome": [
+        "Sm2011.MainChr.8015.protein.fasta",
+        "Sm2011.pSymA.8013.protein.fasta",
+        "Sm2011.pSymB.8014.protein.fasta"
+      ],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Sinorhizobium_meliloti_Sm2011",
+      "expression_gtf": [],
+      "assembly": [
+        "Sm2011.MainChr.8015.fasta",
+        "Sm2011.pSymA.8013.fasta",
+        "Sm2011.pSymB.8014.fasta"
+      ],
+      "mirbase_prefix": "",
+      "version": "Sm2011",
+      "interproscan": [
+        "Sm2011.MainChr.8015.ipscan.tsv",
+        "Sm2011.pSymA.8013.ipscan.tsv",
+        "Sm2011.pSymB.8014.ipscan.tsv"
+      ],
+      "abbreviation": "Smel",
+      "annotation": [
+        "Sm2011.MainChr.8015.gff3",
+        "Sm2011.pSymA.8013.gff3",
+        "Sm2011.pSymB.8014.gff3"
+      ]
+    },
+    "Sinorhizobium_meliloti_M162": {
+      "description": "",
+      "tags": "",
+      "key": "Sinorhizobium_meliloti_M162",
+      "taxid": "",
+      "name": "Sinorhizobium meliloti",
+      "proteome": [
+        "M162.MainChr.7572.protein.fasta",
+        "M162.pSymA.7574.protein.fasta",
+        "M162.pSymB.7573.protein.fasta",
+        "M162.plasmid.7575.protein.fasta",
+        "M162.plasmid.7576.protein.fasta",
+        "M162.plasmid.7577.protein.fasta",
+        "M162.plasmid.7578.protein.fasta"
+      ],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Sinorhizobium_meliloti_M162",
+      "expression_gtf": [],
+      "assembly": [
+        "M162.MainChr.7572.fasta",
+        "M162.pSymA.7574.fasta",
+        "M162.pSymB.7573.fasta",
+        "M162.plasmid.7575.fasta",
+        "M162.plasmid.7576.fasta",
+        "M162.plasmid.7577.fasta",
+        "M162.plasmid.7578.fasta"
+      ],
+      "mirbase_prefix": "",
+      "version": "M162",
+      "interproscan": [
+        "M162.MainChr.7572.ipscan.tsv",
+        "M162.pSymA.7574.ipscan.tsv",
+        "M162.pSymB.7573.ipscan.tsv",
+        "M162.plasmid.7575.ipscan.tsv",
+        "M162.plasmid.7576.ipscan.tsv",
+        "M162.plasmid.7577.ipscan.tsv",
+        "M162.plasmid.7578.ipscan.tsv"
+      ],
+      "abbreviation": "Smel",
+      "annotation": [
+        "M162.MainChr.7572.gff3",
+        "M162.pSymA.7574.gff3",
+        "M162.pSymB.7573.gff3",
+        "M162.plasmid.7575.gff3",
+        "M162.plasmid.7576.gff3",
+        "M162.plasmid.7577.gff3",
+        "M162.plasmid.7578.gff3"
+      ]
+    },
+    "Sinorhizobium_medicae_WSM419": {
+      "description": "",
+      "tags": "",
+      "key": "Sinorhizobium_medicae_WSM419",
+      "taxid": "",
+      "name": "Sinorhizobium medicae",
+      "proteome": [
+        "WSM419.plasmid.7608.protein.fasta",
+        "WSM419.plasmid.7609.protein.fasta",
+        "WSM419.plasmid.7610.protein.fasta",
+        "WSM419.plasmid.7611.protein.fasta"
+      ],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Sinorhizobium_medicae_WSM419",
+      "expression_gtf": [],
+      "assembly": [
+        "WSM419.plasmid.7608.fasta",
+        "WSM419.plasmid.7609.fasta",
+        "WSM419.plasmid.7610.fasta",
+        "WSM419.plasmid.7611.fasta"
+      ],
+      "mirbase_prefix": "",
+      "version": "WSM419",
+      "interproscan": [
+        "WSM419.plasmid.7608.ipscan.tsv",
+        "WSM419.plasmid.7609.ipscan.tsv",
+        "WSM419.plasmid.7610.ipscan.tsv",
+        "WSM419.plasmid.7611.ipscan.tsv"
+      ],
+      "abbreviation": "Smed",
+      "annotation": [
+        "WSM419.plasmid.7608.gff3",
+        "WSM419.plasmid.7609.gff3",
+        "WSM419.plasmid.7610.gff3",
+        "WSM419.plasmid.7611.gff3"
+      ]
+    },
+    "Sinorhizobium_meliloti_USDA1106": {
+      "description": "",
+      "tags": "",
+      "key": "Sinorhizobium_meliloti_USDA1106",
+      "taxid": "",
+      "name": "Sinorhizobium meliloti",
+      "proteome": [
+        "USDA1106.MainChr.7601.protein.fasta",
+        "USDA1106.pSymA.7603.protein.fasta",
+        "USDA1106.pSymB.7602.protein.fasta"
+      ],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Sinorhizobium_meliloti_USDA1106",
+      "expression_gtf": [],
+      "assembly": [
+        "USDA1106.MainChr.7601.fasta",
+        "USDA1106.pSymA.7603.fasta",
+        "USDA1106.pSymB.7602.fasta"
+      ],
+      "mirbase_prefix": "",
+      "version": "USDA1106",
+      "interproscan": [
+        "USDA1106.MainChr.7601.ipscan.tsv",
+        "USDA1106.pSymA.7603.ipscan.tsv",
+        "USDA1106.pSymB.7602.ipscan.tsv"
+      ],
+      "abbreviation": "Smel",
+      "annotation": [
+        "USDA1106.MainChr.7601.gff3",
+        "USDA1106.pSymA.7603.gff3",
+        "USDA1106.pSymB.7602.gff3"
+      ]
+    },
+    "Sinorhizobium_meliloti_USDA1021": {
+      "description": "",
+      "tags": "",
+      "key": "Sinorhizobium_meliloti_USDA1021",
+      "taxid": "",
+      "name": "Sinorhizobium meliloti",
+      "proteome": [
+        "USDA1021.MainChr.8251.protein.fasta"
+      ],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Sinorhizobium_meliloti_USDA1021",
+      "expression_gtf": [],
+      "assembly": [
+        "USDA1021.MainChr.8251.fasta",
+        "USDA1021.pSymA.8252.fasta",
+        "USDA1021.pSymB.8253.fasta",
+        "USDA1021.plasmid.8254.fasta"
+      ],
+      "mirbase_prefix": "",
+      "version": "USDA1021",
+      "interproscan": [
+        "USDA1021.MainChr.8251.ipscan.tsv",
+        "USDA1021.pSymA.8252.ipscan.tsv",
+        "USDA1021.pSymB.8253.ipscan.tsv",
+        "USDA1021.plasmid.8254.ipscan.tsv"
+      ],
+      "abbreviation": "Smel",
+      "annotation": [
+        "USDA1021.MainChr.8251.gff3",
+        "USDA1021.pSymA.8252.gff3",
+        "USDA1021.pSymB.8253.gff3",
+        "USDA1021.plasmid.8254.gff3"
+      ]
+    },
+    "Sinorhizobium_meliloti_Rm41": {
+      "description": "",
+      "tags": "",
+      "key": "Sinorhizobium_meliloti_Rm41",
+      "taxid": "",
+      "name": "Sinorhizobium meliloti",
+      "proteome": [
+        "RM41.MainChr.7586.protein.fasta",
+        "RM41.pSymA.7588.protein.fasta",
+        "RM41.pSymB.7587.protein.fasta",
+        "RM41.plasmid.7589.protein.fasta"
+      ],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Sinorhizobium_meliloti_Rm41",
+      "expression_gtf": [],
+      "assembly": [
+        "RM41.MainChr.7586.fasta",
+        "RM41.pSymA.7588.fasta",
+        "RM41.pSymB.7587.fasta",
+        "RM41.plasmid.7589.fasta"
+      ],
+      "mirbase_prefix": "",
+      "version": "Rm41",
+      "interproscan": [
+        "RM41.MainChr.7586.ipscan.tsv",
+        "RM41.pSymA.7588.ipscan.tsv",
+        "RM41.pSymB.7587.ipscan.tsv",
+        "RM41.plasmid.7589.ipscan.tsv"
+      ],
+      "abbreviation": "Smel",
+      "annotation": [
+        "RM41.MainChr.7586.gff3",
+        "RM41.pSymA.7588.gff3",
+        "RM41.pSymB.7587.gff3",
+        "RM41.plasmid.7589.gff3"
+      ]
+    },
+    "Sinorhizobium_meliloti_Ak83": {
+      "description": "",
+      "tags": "",
+      "key": "Sinorhizobium_meliloti_Ak83",
+      "taxid": "",
+      "name": "Sinorhizobium meliloti",
+      "proteome": [
+        "Ak83.MainChr.7994.protein.fasta",
+        "Ak83.pSymA.7992.protein.fasta",
+        "Ak83.pSymB.7993.protein.fasta",
+        "Ak83.plasmid.7990.protein.fasta",
+        "Ak83.plasmid.7991.protein.fasta"
+      ],
+      "pathway": [],
+      "expression_fpkm_tracking": [],
+      "root": "data/Sinorhizobium_meliloti_Ak83",
+      "expression_gtf": [],
+      "assembly": [
+        "Ak83.MainChr.7994.fasta",
+        "Ak83.pSymA.7992.fasta",
+        "Ak83.pSymB.7993.fasta",
+        "Ak83.plasmid.7990.fasta",
+        "Ak83.plasmid.7991.fasta"
+      ],
+      "mirbase_prefix": "",
+      "version": "Ak83",
+      "interproscan": [
+        "Ak83.MainChr.7994.ipscan.tsv",
+        "Ak83.pSymB.7993.ipscan.tsv",
+        "Ak83.plasmid.7990.ipscan.tsv",
+        "Ak83.plasmid.7991.ipscan.tsv"
+      ],
+      "abbreviation": "Smel",
+      "annotation": [
+        "Ak83.MainChr.7994.gff3",
+        "Ak83.pSymA.7992.gff3",
+        "Ak83.pSymB.7993.gff3",
+        "Ak83.plasmid.7990.gff3",
+        "Ak83.plasmid.7991.gff3"
+      ]
+    }
+  }
+}

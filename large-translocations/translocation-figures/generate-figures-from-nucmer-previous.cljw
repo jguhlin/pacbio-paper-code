@@ -1,0 +1,477 @@
+;; gorilla-repl.fileformat = 1
+
+;; **
+;;; # Gorilla REPL
+;;; 
+;;; Welcome to gorilla :-)
+;;; 
+;;; Shift + enter evaluates code. Hit alt+g twice in quick succession or click the menu icon (upper-right corner) for more commands ...
+;;; 
+;;; It's a good habit to run each worksheet in its own namespace: feel free to use the declaration we've provided below if you'd like.
+;; **
+
+;; @@
+(ns natural-sands
+  (:require [gorilla-plot.core :as plot]
+            [quil.core :as q]
+            [quil.middleware :as m]))
+
+(defrecord Nucmer [ref-start 
+                   ref-end
+                   query-start
+                   query-end
+                   ref-length
+                   query-length
+                   pct-id
+                   ref-coverage
+                   query-coverage
+                   ref-landmark
+                   query-landmark])
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-class'>natural_sands.Nucmer</span>","value":"natural_sands.Nucmer"}
+;; <=
+
+;; @@
+; Nucmer show-coords output format:
+;   [S1]     [E1]  |     [S2]     [E2]  |  [LEN 1]  [LEN 2]  |  [% IDY]  |  [COV R]  [COV Q]  | [TAGS]
+
+
+(defn process-nucmer-output [filename]
+  (with-open [rdr (clojure.java.io/reader filename)]
+    (doall
+      (->> (line-seq rdr)
+           (map
+             (fn [x] 
+               (clojure.string/split x #"\s+" 11)))
+           (map 
+             (fn [[ref-start
+                   ref-end
+                   query-start
+                   query-end
+                   ref-length
+                   query-length
+                   pct-id
+                   ref-coverage
+                   query-coverage
+                   ref-landmark
+                   query-landmark]]
+               (->Nucmer 
+                 (read-string ref-start)
+                 (read-string ref-end)
+                 (read-string query-start)
+                 (read-string query-end)
+                 (read-string ref-length)
+                 (read-string query-length)
+                 (read-string pct-id)
+                 (read-string ref-coverage)
+                 (read-string query-coverage)
+                 ref-landmark
+                 query-landmark)))))))
+
+(def output (process-nucmer-output "../USDA1106-vs-M162.coords"))
+
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/output</span>","value":"#'natural-sands/output"}
+;; <=
+
+;; @@
+(def acc-is-psyma
+  (filter
+    (fn [x]
+      (and
+        (>= (:query-length x) 10000)
+        (>= (:ref-length x) 10000)
+        (>= (:pct-id x) 92.0)
+        (or 
+          (= (:query-landmark x) "M162_Accessory_A")
+          (= (:query-landmark x) "pSymA"))
+        (= (:ref-landmark "pSymA"))))
+    output))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/acc-is-psyma</span>","value":"#'natural-sands/acc-is-psyma"}
+;; <=
+
+;; @@
+(def acc-is-psyma-sorted
+  (sort
+    (fn [x y]
+      (>= (:query-length x) (:query-length y)))
+    acc-is-psyma))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/acc-is-psyma-sorted</span>","value":"#'natural-sands/acc-is-psyma-sorted"}
+;; <=
+
+;; @@
+(map
+  (fn [x]
+    [(:query-start x) (:query-end x) (:query-length x)])
+  (take 10 acc-is-psyma-sorted))
+;; @@
+;; =>
+;;; {"type":"list-like","open":"<span class='clj-lazy-seq'>(</span>","close":"<span class='clj-lazy-seq'>)</span>","separator":" ","items":[{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>538918</span>","value":"538918"},{"type":"html","content":"<span class='clj-long'>664843</span>","value":"664843"},{"type":"html","content":"<span class='clj-long'>125926</span>","value":"125926"}],"value":"[538918 664843 125926]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>132640</span>","value":"132640"},{"type":"html","content":"<span class='clj-long'>86099</span>","value":"86099"},{"type":"html","content":"<span class='clj-long'>46542</span>","value":"46542"}],"value":"[132640 86099 46542]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>306587</span>","value":"306587"},{"type":"html","content":"<span class='clj-long'>266985</span>","value":"266985"},{"type":"html","content":"<span class='clj-long'>39603</span>","value":"39603"}],"value":"[306587 266985 39603]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>431510</span>","value":"431510"},{"type":"html","content":"<span class='clj-long'>464741</span>","value":"464741"},{"type":"html","content":"<span class='clj-long'>33232</span>","value":"33232"}],"value":"[431510 464741 33232]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>688424</span>","value":"688424"},{"type":"html","content":"<span class='clj-long'>715990</span>","value":"715990"},{"type":"html","content":"<span class='clj-long'>27567</span>","value":"27567"}],"value":"[688424 715990 27567]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>782923</span>","value":"782923"},{"type":"html","content":"<span class='clj-long'>806871</span>","value":"806871"},{"type":"html","content":"<span class='clj-long'>23949</span>","value":"23949"}],"value":"[782923 806871 23949]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>123603</span>","value":"123603"},{"type":"html","content":"<span class='clj-long'>100119</span>","value":"100119"},{"type":"html","content":"<span class='clj-long'>23485</span>","value":"23485"}],"value":"[123603 100119 23485]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>319937</span>","value":"319937"},{"type":"html","content":"<span class='clj-long'>342971</span>","value":"342971"},{"type":"html","content":"<span class='clj-long'>23035</span>","value":"23035"}],"value":"[319937 342971 23035]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>233025</span>","value":"233025"},{"type":"html","content":"<span class='clj-long'>210535</span>","value":"210535"},{"type":"html","content":"<span class='clj-long'>22491</span>","value":"22491"}],"value":"[233025 210535 22491]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>203371</span>","value":"203371"},{"type":"html","content":"<span class='clj-long'>182426</span>","value":"182426"},{"type":"html","content":"<span class='clj-long'>20946</span>","value":"20946"}],"value":"[203371 182426 20946]"}],"value":"([538918 664843 125926] [132640 86099 46542] [306587 266985 39603] [431510 464741 33232] [688424 715990 27567] [782923 806871 23949] [123603 100119 23485] [319937 342971 23035] [233025 210535 22491] [203371 182426 20946])"}
+;; <=
+
+;; @@
+(reduce + (map (fn [x] (:query-length x)) acc-is-psyma-sorted))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-long'>598199</span>","value":"598199"}
+;; <=
+
+;; **
+;;; ## Quil Integration
+;; **
+
+;; @@
+(defn setup []
+  (q/color-mode :rgb 255)
+  (q/frame-rate 30)
+  (q/background 255))
+
+(def width 800)
+(def height 500)
+
+
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/height</span>","value":"#'natural-sands/height"}
+;; <=
+
+;; @@
+(def replicon-lengths
+  {["USDA1106" "pSymA"] 1363628
+   ["M162" "pSymA"] 892745
+   ["M162" "M162_Accessory_A"] 416269
+   ["M2" "Accessory"] 210725})
+
+(def replicons
+  [[["USDA1106" "pSymA"]]
+   [["M162" "pSymA"] ["M162" "M162_Accessory_A"]]
+   [["M2" "Accessory"]]])
+
+(def longest-row
+  (apply 
+      max 
+      (map 
+        (fn [x]
+          (reduce + (map (fn [y] (get replicon-lengths y)) x)))
+        replicons)))
+
+(def width-ratio
+  (/
+    (- width 100)
+    longest-row))
+  
+(defn calculate-offset [x row]
+  (if (= x 0) 0
+    (+ 20 (* width-ratio (get replicon-lengths (get row (- x 1)))))))
+
+(defn calculate-centrality [row]
+  (let [row-length (reduce + 
+                           (map 
+                             (fn [y] 
+                               (get replicon-lengths y)) 
+                             row))]
+    (/ (* width-ratio (- longest-row row-length)) 2))) 
+
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/calculate-centrality</span>","value":"#'natural-sands/calculate-centrality"}
+;; <=
+
+;; @@
+(def color-fn
+  (fn [x]
+    (cond
+      (= (:query-landmark x) "pSymA") [255 0 0 100]
+      (= (:query-landmark x) "M162_Accessory_A") [65 105 225 100])))
+
+; Offsets are x-based
+; For y-offsets, use q/with-translation
+(defn generate-alignment-quad [row1-offset row2-offset color
+                               [row1-start row1-end row2-start row2-end]]
+  [(+ row1-offset (* width-ratio row1-start))
+   0
+   (+ row1-offset (* width-ratio row1-end))
+   0
+   (+ row2-offset (* width-ratio row2-end))
+   100
+   (+ row2-offset (* width-ratio row2-start))
+   100
+   color
+   ])
+
+(defn draw-alignments [alignments row1 row2 row1-offset row2-offset align-fn color-fn]
+  (let [centrality-row1 (calculate-centrality row1)
+        centrality-row2 (calculate-centrality row2)]
+    
+    (for [i alignments]
+      (let [color (color-fn i)]
+        (generate-alignment-quad 
+          (+ centrality-row1 (row1-offset i row1))
+          (+ centrality-row2 (row2-offset i row2))
+          color 
+          (align-fn i))))))
+
+(defn generate-alignment-block [[start end] row-offset color]
+  (let [s (min start end)
+        e (max start end)]
+    [(+ row-offset (* width-ratio s))
+     0 
+     (* width-ratio (- e s))
+     40 
+     color]))
+
+(defn draw-alignment-blocks [alignments row row-offset align-fn color-fn]
+  (let [centrality (calculate-centrality row)]
+    (for [i alignments]
+      (generate-alignment-block 
+        (align-fn i) 
+        (+ centrality (row-offset i row))
+        (color-fn i)))))
+
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/draw-alignment-blocks</span>","value":"#'natural-sands/draw-alignment-blocks"}
+;; <=
+
+;; @@
+(defn draw-alignments-top-middle []
+  (for [i acc-is-psyma-sorted]
+    (let [replicon-offset (cond
+                          (= (:query-landmark i) "pSymA") 0
+                          (= (:query-landmark i) "M162_Accessory_A")
+                            (+ 65 (* width-ratio (get replicon-lengths ["M162" "pSymA"]))))
+          replicon-color (cond
+                          (= (:query-landmark i) "pSymA") [255 0 0 100]
+                          (= (:query-landmark i) "M162_Accessory_A") [65 105 225 100])
+                            
+          ]
+      [(+ 45 (* width-ratio (:ref-start i)))   ; x1
+       100                                            ; y1
+       (+ 45 (* width-ratio (:ref-end i)))     ; x2
+       100                                            ; y2
+       (+ 45 replicon-offset (* width-ratio (:query-end i))) ; x3
+       200                                            ; y3
+       (+ 45 replicon-offset (* width-ratio (:query-start i)))   ; x4
+       200                                            ; y4
+       replicon-color
+       ])))
+
+(defn draw-top-alignments []
+  (for [i acc-is-psyma-sorted]
+    (let [replicon-color (cond
+                          (= (:query-landmark i) "pSymA") [255 0 0 100]
+                          (= (:query-landmark i) "M162_Accessory_A") [65 105 225 100])
+          x1 (min (:ref-start i) (:ref-end i))
+          x2 (max (:ref-start i) (:ref-end i))
+          ]
+                                                 ; Offset based off of previous replicon
+      [(+ 45 (* width-ratio x1))   ; x1
+        60                                            ; y1
+       (+ 45 (* width-ratio x2))     ; x2
+        60                                            ; y2
+       (+ 45 (* width-ratio x2))   ; x3
+       100                                            ; y3
+       ( + 45 (* width-ratio x1))     ; x4
+       100                                            ; y4
+       replicon-color
+       ])))
+
+(defn draw-middle-alignments []
+  (for [i acc-is-psyma-sorted]
+    (let [replicon-offset (cond
+                          (= (:query-landmark i) "pSymA") 0
+                          (= (:query-landmark i) "M162_Accessory_A")
+                            (+ 65 (* width-ratio (get replicon-lengths ["M162" "pSymA"]))))
+          replicon-color (cond
+                          (= (:query-landmark i) "pSymA") [255 0 0 100]
+                          (= (:query-landmark i) "M162_Accessory_A") [65 105 225 100])
+          x1 (min (:query-start i) (:query-end i))
+          x2 (max (:query-start i) (:query-end i))
+          ]
+                                                 ; Offset based off of previous replicon
+      [(+ 45 replicon-offset (* width-ratio x1))   ; x1
+        200                                            ; y1
+       (+ 45 replicon-offset (* width-ratio x2))     ; x2
+        200                                            ; y2
+       (+ 45 replicon-offset (* width-ratio x2))   ; x3
+       240                                            ; y3
+       (+ 45 replicon-offset (* width-ratio x1))     ; x4
+       240                                            ; y4
+       replicon-color
+       ])))
+
+; Draw the replicons
+(defn draw []
+  ; Make background white
+  (q/background 255 255 255)
+  (doseq [i (range 0 (count replicons))]
+    (doseq [x (range 0 (count (get replicons i)))]
+      (let [replicon (get (get replicons i) x)
+            replicon-length (get replicon-lengths replicon)
+            centrality-padding (calculate-centrality (get replicons i))]
+        (q/with-translation 
+          [(+ 45 centrality-padding (calculate-offset x (get replicons i))) ; x
+           (+ 60 (* i 140))] ; y
+          (q/fill 220)
+          (q/stroke 0 0 0)
+          ; Start position (x, y) then width, height (x, y)
+          (q/rect 0 0 (* width-ratio replicon-length) 40)))))
+  
+  ; Between top and middle row
+  (q/with-translation 
+    [45 100]
+    (let [align-fn (fn [x]
+                     [(:ref-start x)
+                      (:ref-end x)
+                      (:query-start x)
+                      (:query-end x)])
+          row1-offset (fn [_ _] 0)
+          row2-offset (fn [i row] 
+                        (let [x (if
+                                  (= (:query-landmark i) "pSymA") 0 1)]
+                          (calculate-offset x row)))
+          alignments   (draw-alignments
+                         acc-is-psyma-sorted 
+                         (get replicons 0) 
+                         (get replicons 1)
+                         row1-offset
+                         row2-offset
+                         align-fn 
+                         color-fn)]
+      (q/stroke 0 0 0 100)
+      (doseq [[x1 y1 x2 y2 x3 y3 x4 y4 color] alignments]
+        (apply q/fill color)
+        (q/quad x1 y1 x2 y2 x3 y4 x4 y4))))
+        
+                      
+;  (doseq [[x1 y1 x2 y2 x3 y3 x4 y4 color] (draw-alignments-top-middle)]
+;    (q/stroke 0 0 0 100)
+;    (apply q/fill color)
+;    (q/quad x1 y1 x2 y2 x3 y4 x4 y4))
+  
+  (q/with-translation 
+    [45 60]
+    (let [align-fn (fn [x]
+                     [(:ref-start x)
+                      (:ref-end x)
+                      (:query-start x)
+                      (:query-end x)])
+          row1-offset (fn [_ _] 0)
+          alignments   (draw-alignment-blocks
+                         acc-is-psyma-sorted 
+                         (get replicons 0)
+                         row1-offset
+                         (fn [x] [(:ref-start x) (:ref-end x)])
+                         color-fn)]
+      (q/stroke 0 0 0 100)
+      (doseq [[x y width height color] alignments]
+        (apply q/fill color)
+        (q/rect x y width height))))
+
+  (q/with-translation 
+    [45 200]
+    (let [align-fn (fn [x]
+                     [(:ref-start x)
+                      (:ref-end x)
+                      (:query-start x)
+                      (:query-end x)])
+          row2-offset (fn [i row] 
+                        (let [x (if
+                                  (= (:query-landmark i) "pSymA") 0 1)]
+                          (calculate-offset x row)))
+          alignments   (draw-alignment-blocks
+                         acc-is-psyma-sorted 
+                         (get replicons 1)
+                         row2-offset
+                         (fn [x] [(:query-start x) (:query-end x)])
+                         color-fn)]
+      (q/stroke 0 0 0 100)
+      (doseq [[x y width height color] alignments]
+        (apply q/fill color)
+        (q/rect x y width height))))
+
+  )
+;  (doseq [[x1 y1 x2 y2 x3 y3 x4 y4 color] (draw-top-alignments)]
+;    (q/no-stroke)
+;    (apply q/fill color)
+;    (q/quad x1 y1 x2 y2 x3 y4 x4 y4))
+  
+;  (doseq [[x1 y1 x2 y2 x3 y3 x4 y4 color] (draw-middle-alignments)]
+;    (q/no-stroke)
+;    (apply q/fill color)
+;    (q/quad x1 y1 x2 y2 x3 y4 x4 y4)))
+
+                          
+;  (let [i (atom 1)]
+;    (for [row replicons]
+;      (for [replicon row]
+;        (q/with-translation [45 (* @i 40)]
+;          (q/fill 220)
+;          (q/stroke 0 0 0)
+;          (q/rect 0 0 30 20))))))
+
+
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/draw</span>","value":"#'natural-sands/draw"}
+;; <=
+
+;; @@
+(let [row2-offset (fn [i row] 
+                        (let [x (if
+                                  (= (:query-landmark i) "pSymA") 0 1)]
+                          (calculate-offset x row)))
+      alignments   (draw-alignment-blocks
+                         acc-is-psyma-sorted 
+                         (get replicons 1)
+                         row2-offset
+                         (fn [x] [(:query-start x) (:query-end x)])
+                         color-fn)]
+  alignments)
+  ;(q/stroke 0 0 0 100)
+  ;(doseq [[x y width height color] alignments]
+  ;  (apply q/fill color)
+  ;  (q/rect x y width height)))
+;; @@
+;; =>
+;;; {"type":"list-like","open":"<span class='clj-lazy-seq'>(</span>","close":"<span class='clj-lazy-seq'>)</span>","separator":" ","items":[{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>13472950/48701</span>","value":"13472950/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>3148125/48701</span>","value":"3148125/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>255</span>","value":"255"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[255 0 0 100]"}],"value":"[13472950/48701 0 3148125/48701 40 [255 0 0 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>2152475/48701</span>","value":"2152475/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>1163525/48701</span>","value":"1163525/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>65</span>","value":"65"},{"type":"html","content":"<span class='clj-long'>105</span>","value":"105"},{"type":"html","content":"<span class='clj-long'>225</span>","value":"225"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[65 105 225 100]"}],"value":"[2152475/48701 0 1163525/48701 40 [65 105 225 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>6674625/48701</span>","value":"6674625/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>990050/48701</span>","value":"990050/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>65</span>","value":"65"},{"type":"html","content":"<span class='clj-long'>105</span>","value":"105"},{"type":"html","content":"<span class='clj-long'>225</span>","value":"225"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[65 105 225 100]"}],"value":"[6674625/48701 0 990050/48701 40 [65 105 225 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>10787750/48701</span>","value":"10787750/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>830775/48701</span>","value":"830775/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>255</span>","value":"255"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[255 0 0 100]"}],"value":"[10787750/48701 0 830775/48701 40 [255 0 0 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>17210600/48701</span>","value":"17210600/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>689150/48701</span>","value":"689150/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>255</span>","value":"255"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[255 0 0 100]"}],"value":"[17210600/48701 0 689150/48701 40 [255 0 0 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>19573075/48701</span>","value":"19573075/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>598700/48701</span>","value":"598700/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>255</span>","value":"255"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[255 0 0 100]"}],"value":"[19573075/48701 0 598700/48701 40 [255 0 0 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>2502975/48701</span>","value":"2502975/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>587100/48701</span>","value":"587100/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>255</span>","value":"255"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[255 0 0 100]"}],"value":"[2502975/48701 0 587100/48701 40 [255 0 0 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>7998425/48701</span>","value":"7998425/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>575850/48701</span>","value":"575850/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>255</span>","value":"255"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[255 0 0 100]"}],"value":"[7998425/48701 0 575850/48701 40 [255 0 0 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>5263375/48701</span>","value":"5263375/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>562250/48701</span>","value":"562250/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>65</span>","value":"65"},{"type":"html","content":"<span class='clj-long'>105</span>","value":"105"},{"type":"html","content":"<span class='clj-long'>225</span>","value":"225"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[65 105 225 100]"}],"value":"[5263375/48701 0 562250/48701 40 [65 105 225 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>4560650/48701</span>","value":"4560650/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>523625/48701</span>","value":"523625/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>65</span>","value":"65"},{"type":"html","content":"<span class='clj-long'>105</span>","value":"105"},{"type":"html","content":"<span class='clj-long'>225</span>","value":"225"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[65 105 225 100]"}],"value":"[4560650/48701 0 523625/48701 40 [65 105 225 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>16621125/48701</span>","value":"16621125/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>517775/48701</span>","value":"517775/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>255</span>","value":"255"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[255 0 0 100]"}],"value":"[16621125/48701 0 517775/48701 40 [255 0 0 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>6003500/48701</span>","value":"6003500/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>409225/48701</span>","value":"409225/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>255</span>","value":"255"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[255 0 0 100]"}],"value":"[6003500/48701 0 409225/48701 40 [255 0 0 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>6253325/48701</span>","value":"6253325/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>392025/48701</span>","value":"392025/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>65</span>","value":"65"},{"type":"html","content":"<span class='clj-long'>105</span>","value":"105"},{"type":"html","content":"<span class='clj-long'>225</span>","value":"225"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[65 105 225 100]"}],"value":"[6253325/48701 0 392025/48701 40 [65 105 225 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>1386075/48701</span>","value":"1386075/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>380750/48701</span>","value":"380750/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>65</span>","value":"65"},{"type":"html","content":"<span class='clj-long'>105</span>","value":"105"},{"type":"html","content":"<span class='clj-long'>225</span>","value":"225"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[65 105 225 100]"}],"value":"[1386075/48701 0 380750/48701 40 [65 105 225 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>597575/1571</span>","value":"597575/1571"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>378900/48701</span>","value":"378900/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>255</span>","value":"255"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[255 0 0 100]"}],"value":"[597575/1571 0 378900/48701 40 [255 0 0 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>12196625/48701</span>","value":"12196625/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>377650/48701</span>","value":"377650/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>255</span>","value":"255"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[255 0 0 100]"}],"value":"[12196625/48701 0 377650/48701 40 [255 0 0 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>12802425/48701</span>","value":"12802425/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>359375/48701</span>","value":"359375/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>255</span>","value":"255"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[255 0 0 100]"}],"value":"[12802425/48701 0 359375/48701 40 [255 0 0 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>3959025/48701</span>","value":"3959025/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>335100/48701</span>","value":"335100/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>65</span>","value":"65"},{"type":"html","content":"<span class='clj-long'>105</span>","value":"105"},{"type":"html","content":"<span class='clj-long'>225</span>","value":"225"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[65 105 225 100]"}],"value":"[3959025/48701 0 335100/48701 40 [65 105 225 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>1751575/48701</span>","value":"1751575/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>328450/48701</span>","value":"328450/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>255</span>","value":"255"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[255 0 0 100]"}],"value":"[1751575/48701 0 328450/48701 40 [255 0 0 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>1779525/48701</span>","value":"1779525/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>325050/48701</span>","value":"325050/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>65</span>","value":"65"},{"type":"html","content":"<span class='clj-long'>105</span>","value":"105"},{"type":"html","content":"<span class='clj-long'>225</span>","value":"225"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[65 105 225 100]"}],"value":"[1779525/48701 0 325050/48701 40 [65 105 225 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>9531525/48701</span>","value":"9531525/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>311175/48701</span>","value":"311175/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>255</span>","value":"255"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[255 0 0 100]"}],"value":"[9531525/48701 0 311175/48701 40 [255 0 0 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>10374650/48701</span>","value":"10374650/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>298625/48701</span>","value":"298625/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>255</span>","value":"255"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[255 0 0 100]"}],"value":"[10374650/48701 0 298625/48701 40 [255 0 0 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>19008000/48701</span>","value":"19008000/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>292275/48701</span>","value":"292275/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>255</span>","value":"255"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[255 0 0 100]"}],"value":"[19008000/48701 0 292275/48701 40 [255 0 0 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>11748475/48701</span>","value":"11748475/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>292225/48701</span>","value":"292225/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>255</span>","value":"255"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[255 0 0 100]"}],"value":"[11748475/48701 0 292225/48701 40 [255 0 0 100]]"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-ratio'>3672550/48701</span>","value":"3672550/48701"},{"type":"html","content":"<span class='clj-long'>0</span>","value":"0"},{"type":"html","content":"<span class='clj-ratio'>286600/48701</span>","value":"286600/48701"},{"type":"html","content":"<span class='clj-long'>40</span>","value":"40"},{"type":"list-like","open":"<span class='clj-vector'>[</span>","close":"<span class='clj-vector'>]</span>","separator":" ","items":[{"type":"html","content":"<span class='clj-long'>65</span>","value":"65"},{"type":"html","content":"<span class='clj-long'>105</span>","value":"105"},{"type":"html","content":"<span class='clj-long'>225</span>","value":"225"},{"type":"html","content":"<span class='clj-long'>100</span>","value":"100"}],"value":"[65 105 225 100]"}],"value":"[3672550/48701 0 286600/48701 40 [65 105 225 100]]"}],"value":"([13472950/48701 0 3148125/48701 40 [255 0 0 100]] [2152475/48701 0 1163525/48701 40 [65 105 225 100]] [6674625/48701 0 990050/48701 40 [65 105 225 100]] [10787750/48701 0 830775/48701 40 [255 0 0 100]] [17210600/48701 0 689150/48701 40 [255 0 0 100]] [19573075/48701 0 598700/48701 40 [255 0 0 100]] [2502975/48701 0 587100/48701 40 [255 0 0 100]] [7998425/48701 0 575850/48701 40 [255 0 0 100]] [5263375/48701 0 562250/48701 40 [65 105 225 100]] [4560650/48701 0 523625/48701 40 [65 105 225 100]] [16621125/48701 0 517775/48701 40 [255 0 0 100]] [6003500/48701 0 409225/48701 40 [255 0 0 100]] [6253325/48701 0 392025/48701 40 [65 105 225 100]] [1386075/48701 0 380750/48701 40 [65 105 225 100]] [597575/1571 0 378900/48701 40 [255 0 0 100]] [12196625/48701 0 377650/48701 40 [255 0 0 100]] [12802425/48701 0 359375/48701 40 [255 0 0 100]] [3959025/48701 0 335100/48701 40 [65 105 225 100]] [1751575/48701 0 328450/48701 40 [255 0 0 100]] [1779525/48701 0 325050/48701 40 [65 105 225 100]] [9531525/48701 0 311175/48701 40 [255 0 0 100]] [10374650/48701 0 298625/48701 40 [255 0 0 100]] [19008000/48701 0 292275/48701 40 [255 0 0 100]] [11748475/48701 0 292225/48701 40 [255 0 0 100]] [3672550/48701 0 286600/48701 40 [65 105 225 100]])"}
+;; <=
+
+;; @@
+(+ 20 (float (* width-ratio (get replicon-lengths ["M162" "AccessoryA"]))))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-double'>233.68606567382812</span>","value":"233.68606567382812"}
+;; <=
+
+;; @@
+(q/defsketch translocation-figures
+  :title "Replicons"
+  :size [width height]
+  :setup setup
+  :draw draw
+  :renderer :p3d
+  ;:features [:keep-on-top]
+             )
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/translocation-figures</span>","value":"#'natural-sands/translocation-figures"}
+;; <=
+
+;; @@
+
+;; @@
+
+;; @@
+
+;; @@
+
+;; @@
+
+;; @@

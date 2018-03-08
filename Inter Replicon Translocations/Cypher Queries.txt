@@ -1,0 +1,63 @@
+# Run in the Neo4j console of an ODG generated database
+# To find all core genes
+
+# This one works, must be run programmatically... 
+MATCH (x)-[r:BLASTP_RECIPROCAL_TOP_HIT]-(y)
+WITH x, x.version AS qversion,x.id AS qid, COUNT(DISTINCT(y.version)) as cnt
+  WHERE cnt = 15
+WITH x, qversion, qid
+MATCH (x)-[BLASTP_RECIPROCAL_TOP_HIT]-(y), (x)-[r:BLASTP_TOP_HIT]-(y)
+WHERE x.version <> y.version
+  RETURN DISTINCT x.id, qversion, y.id, y.version, r.bitscore
+
+# This one seems to work
+MATCH (x)-[r:BLASTP_RECIPROCAL_TOP_HIT]-(y)
+WITH x, x.version AS qversion,x.id AS qid, COUNT(DISTINCT(y.version)) as cnt
+  WHERE cnt = 15
+WITH x, qversion, qid
+MATCH (x)-[BLASTP_RECIPROCAL_TOP_HIT]-(y), (x)-[r:BLASTP_TOP_HIT]-(y)
+WHERE x.version <> y.version
+  RETURN DISTINCT x.id, qversion, y.id, y.version, r.bitscore
+
+# Find only single copies?
+MATCH (x)-[r:BLASTP_RECIPROCAL_TOP_HIT]-(y)
+WITH x, 
+     x.version AS qversion,
+     x.id AS qid, 
+     COUNT(DISTINCT(y.version)) as cnt_distinct, 
+     COUNT(y.version) AS cnt 
+     LIMIT 1000
+  WHERE cnt_distinct = 15 AND cnt = 15
+WITH x, qversion, qid
+MATCH (x)-[BLASTP_RECIPROCAL_TOP_HIT]-(y), (x)-[r:BLASTP_TOP_HIT]-(y)
+WHERE x.version <> y.version
+  RETURN x.id, qversion, y.id, y.version, r.bitscore
+  
+
+MATCH (x)-[r:BLASTP_RECIPROCAL_TOP_HIT]-(y)
+WITH x, x.version AS qversion,x.id AS qid, COUNT(DISTINCT(y.version)) as cnt LIMIT 10
+  WHERE cnt = 15
+WITH x, qversion, qid
+MATCH (x)-[BLASTP_RECIPROCAL_TOP_HIT]-(y), (x)-[r:BLASTP_TOP_HIT]-(y)
+WHERE x.version <> y.version
+  RETURN x.id, qversion, y.id, y.version, r.bitscore
+
+# This one identifies all genes that have 15 BEST_TOP_HITs (minimum) of different accessions
+MATCH (x)-[r:BLASTP_RECIPROCAL_TOP_HIT]-(y)
+  WITH x.version AS qversion,x.id AS qid, COUNT(DISTINCT(y.version)) as cnt LIMIT 10
+  WHERE cnt = 15
+  RETURN qversion, qid, cnt
+
+# Did not work -- Delete
+
+MATCH (x)-[:BLASTP_RECIPROCAL_TOP_HIT]-(y), (x)-[:BLASTP_RECIPROCAL_TOP_HIT]-(z), 
+      (x)-[:BLASTP_RECIPROCAL_TOP_HIT]-(a), (x)-[:BLASTP_RECIPROCAL_TOP_HIT]-(b),
+      (x)-[:BLASTP_RECIPROCAL_TOP_HIT]-(c), (x)-[:BLASTP_RECIPROCAL_TOP_HIT]-(d),
+      (x)-[:BLASTP_RECIPROCAL_TOP_HIT]-(e), (x)-[:BLASTP_RECIPROCAL_TOP_HIT]-(f),
+      (x)-[:BLASTP_RECIPROCAL_TOP_HIT]-(g), (x)-[:BLASTP_RECIPROCAL_TOP_HIT]-(h),
+      (x)-[:BLASTP_RECIPROCAL_TOP_HIT]-(i), (x)-[:BLASTP_RECIPROCAL_TOP_HIT]-(j),
+      (x)-[:BLASTP_RECIPROCAL_TOP_HIT]-(k), (x)-[:BLASTP_RECIPROCAL_TOP_HIT]-(l),
+      (x)-[:BLASTP_RECIPROCAL_TOP_HIT]-(m)
+ WHERE
+      x.version <> y.version <> z.version <> a.version <> b.version <> c.version <> d.version <> e.version <> f.version <> g.version <> h.version <> i.version <> j.version <> k.version <> l.version <> m.version
+  RETURN x,y,z,a,b,c,d,e,f,g,h,i,j,k,l,m LIMIT 5

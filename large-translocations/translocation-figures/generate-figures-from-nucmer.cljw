@@ -1,0 +1,469 @@
+;; gorilla-repl.fileformat = 1
+
+;; **
+;;; # Gorilla REPL
+;;; 
+;;; Welcome to gorilla :-)
+;;; 
+;;; Shift + enter evaluates code. Hit alt+g twice in quick succession or click the menu icon (upper-right corner) for more commands ...
+;;; 
+;;; It's a good habit to run each worksheet in its own namespace: feel free to use the declaration we've provided below if you'd like.
+;; **
+
+;; @@
+(ns natural-sands
+  (:require [gorilla-plot.core :as plot]
+            [quil.core :as q]
+            [quil.middleware :as m]))
+
+(defrecord Nucmer [ref-start 
+                   ref-end
+                   query-start
+                   query-end
+                   ref-length
+                   query-length
+                   pct-id
+                   ref-coverage
+                   query-coverage
+                   ref-landmark
+                   query-landmark])
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-class'>natural_sands.Nucmer</span>","value":"natural_sands.Nucmer"}
+;; <=
+
+;; @@
+; Nucmer show-coords output format:
+;   [S1]     [E1]  |     [S2]     [E2]  |  [LEN 1]  [LEN 2]  |  [% IDY]  |  [COV R]  [COV Q]  | [TAGS]
+
+
+(defn process-nucmer-output [filename]
+  (with-open [rdr (clojure.java.io/reader filename)]
+    (doall
+      (->> (line-seq rdr)
+           (map
+             (fn [x] 
+               (clojure.string/split x #"\s+" 11)))
+           (map 
+             (fn [[ref-start
+                   ref-end
+                   query-start
+                   query-end
+                   ref-length
+                   query-length
+                   pct-id
+                   ref-coverage
+                   query-coverage
+                   ref-landmark
+                   query-landmark]]
+               (->Nucmer 
+                 (read-string ref-start)
+                 (read-string ref-end)
+                 (read-string query-start)
+                 (read-string query-end)
+                 (read-string ref-length)
+                 (read-string query-length)
+                 (read-string pct-id)
+                 (read-string ref-coverage)
+                 (read-string query-coverage)
+                 ref-landmark
+                 query-landmark)))))))
+
+(def output (process-nucmer-output "../USDA1106-vs-M162.coords"))
+(def m2-vs-m162-raw (process-nucmer-output "../M2.acc-VS-M162.coords"))
+(def wsm419-vs-m162-raw 
+  (process-nucmer-output "../WSM.acc-VS-M162.coords"))
+
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/wsm419-vs-m162-raw</span>","value":"#'natural-sands/wsm419-vs-m162-raw"}
+;; <=
+
+;; @@
+(def acc-is-psyma
+  (filter
+    (fn [x]
+      (and
+        (>= (:query-length x) 10000)
+        (>= (:ref-length x) 10000)
+        (>= (:pct-id x) 92.0)
+        (or 
+          (= (:query-landmark x) "M162_Accessory_A")
+          (= (:query-landmark x) "pSymA"))
+        (= (:ref-landmark "pSymA"))))
+    output))
+
+(def m2-vs-m162
+  (filter
+    (fn [x]
+      (and
+        (>= (:query-length x) 1500)
+        (>= (:ref-length x) 1500)
+        (>= (:pct-id x) 90.0)
+        (or 
+          (= (:query-landmark x) "M162_Accessory_A")
+          (= (:query-landmark x) "pSymA"))
+        (= (:ref-landmark "7433"))))
+    m2-vs-m162-raw))
+
+(def wsm419-vs-m162
+  (filter
+    (fn [x]
+      (and
+        (>= (:query-length x) 2000)
+        (>= (:ref-length x) 2000)
+        (>= (:pct-id x) 92.0)
+        (or 
+          (= (:query-landmark x) "M162_Accessory_A")
+          (= (:query-landmark x) "pSymA"))
+        (= (:ref-landmark "7611"))))
+    wsm419-vs-m162-raw))
+
+; (def m2-vs-m162 (concat m2-vs-m162 wsm419-vs-m162))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/wsm419-vs-m162</span>","value":"#'natural-sands/wsm419-vs-m162"}
+;; <=
+
+;; @@
+
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/m2-vs-m162</span>","value":"#'natural-sands/m2-vs-m162"}
+;; <=
+
+;; @@
+(def acc-is-psyma-sorted
+  (sort
+    (fn [x y]
+      (>= (:query-length x) (:query-length y)))
+    acc-is-psyma))
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/acc-is-psyma-sorted</span>","value":"#'natural-sands/acc-is-psyma-sorted"}
+;; <=
+
+;; **
+;;; ## Quil Integration
+;; **
+
+;; @@
+(defn setup []
+  (q/color-mode :rgb 255)
+  (q/frame-rate 30)
+  (q/background 255))
+
+(def width 800)
+(def height 500)
+
+
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/height</span>","value":"#'natural-sands/height"}
+;; <=
+
+;; @@
+(def replicon-lengths
+  {["USDA1106" "pSymA"] 1363628
+   ["M162" "pSymA"] 892745
+   ["M162" "M162_Accessory_A"] 416269
+   ["M2" "Accessory"] 210725
+   ;["WSM419" "Accessory"] 173764
+   })
+
+(def replicons
+  [[["USDA1106" "pSymA"]]
+   [["M162" "pSymA"] ["M162" "M162_Accessory_A"]]
+   [["M2" "Accessory"]]]) ;["WSM419" "Accessory"]]])
+
+(def longest-row
+  (apply 
+      max 
+      (map 
+        (fn [x]
+          (reduce + (map (fn [y] (get replicon-lengths y)) x)))
+        replicons)))
+
+(def width-ratio
+  (/
+    (- width 100)
+    longest-row))
+  
+(defn calculate-offset [x row]
+  (if (= x 0) 0
+    (+ 20 (* width-ratio (get replicon-lengths (get row (- x 1)))))))
+
+(defn calculate-centrality [row]
+  (let [row-length (reduce + 
+                           (map 
+                             (fn [y] 
+                               (get replicon-lengths y)) 
+                             row))]
+    (/ (* width-ratio (- longest-row row-length)) 2))) 
+
+;; @@
+;; ->
+;;; Exception in   32]
+;;;   [natural_sands$calculate_centrality invoke form-init5990928333758594277.clj 
+;; <-
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/calculate-centrality</span>","value":"#'natural-sands/calculate-centrality"}
+;; <=
+
+;; @@
+; Offsets are x-based
+; For y-offsets, use q/with-translation
+(defn generate-alignment-quad [row1-offset row2-offset color
+                               [row1-start row1-end row2-start row2-end]]
+  [(+ row1-offset (* width-ratio row1-start))
+   0
+   (+ row1-offset (* width-ratio row1-end))
+   0
+   (+ row2-offset (* width-ratio row2-end))
+   100
+   (+ row2-offset (* width-ratio row2-start))
+   100
+   color
+   ])
+
+(defn draw-alignments [alignments row1 row2 row1-offset row2-offset align-fn color-fn]
+  (let [centrality-row1 (calculate-centrality row1)
+        centrality-row2 (calculate-centrality row2)]
+    
+    (for [i alignments]
+      (let [color (color-fn i)]
+        (generate-alignment-quad 
+          (+ centrality-row1 (row1-offset i row1))
+          (+ centrality-row2 (row2-offset i row2))
+          color 
+          (align-fn i))))))
+
+(defn generate-alignment-block [[start end] row-offset color]
+  (let [s (min start end)
+        e (max start end)]
+    [(+ row-offset (* width-ratio s))
+     0 
+     (* width-ratio (- e s))
+     40 
+     color]))
+
+(defn draw-alignment-blocks [alignments row row-offset align-fn color-fn]
+  (let [centrality (calculate-centrality row)]
+    (for [i alignments]
+      (generate-alignment-block 
+        (align-fn i) 
+        (+ centrality (row-offset i row))
+        (color-fn i)))))
+
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/draw-alignment-blocks</span>","value":"#'natural-sands/draw-alignment-blocks"}
+;; <=
+
+;; @@
+(def color-fn
+  (fn [x]
+    (cond
+      (= (:query-landmark x) "pSymA") [213 94 0 200]
+      (= (:query-landmark x) "M162_Accessory_A") [0 114 178 200])))
+
+; For the M162 vs M2 comparison
+(def color-fn2
+  (fn [x]
+    (cond
+      (= (:query-landmark x) "pSymA") [204 121 167 200]
+      (= (:query-landmark x) "M162_Accessory_A") [240 228 66 200])))
+
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/color-fn2</span>","value":"#'natural-sands/color-fn2"}
+;; <=
+
+;; @@
+
+
+; Draw the replicons
+(defn draw []
+  ; Make background white
+  (q/background 255 255 255)
+  (doseq [i (range 0 (count replicons))]
+    (doseq [x (range 0 (count (get replicons i)))]
+      (let [replicon (get (get replicons i) x)
+            replicon-length (get replicon-lengths replicon)
+            centrality-padding (calculate-centrality (get replicons i))]
+        (q/with-translation 
+          [(+ 45 centrality-padding (calculate-offset x (get replicons i))) ; x
+           (+ 60 (* i 140))] ; y
+          (q/fill 220)
+          (q/stroke 0 0 0)
+          ; Start position (x, y) then width, height (x, y)
+          (q/rect 0 0 (* width-ratio replicon-length) 40)))))
+  
+  ; Between top and middle row
+  (q/with-translation 
+    [45 100]
+    (let [align-fn (fn [x]
+                     [(:ref-start x)
+                      (:ref-end x)
+                      (:query-start x)
+                      (:query-end x)])
+          row1-offset (fn [_ _] 0)
+          row2-offset (fn [i row] 
+                        (let [x (if
+                                  (= (:query-landmark i) "pSymA") 0 1)]
+                          (calculate-offset x row)))
+          alignments   (draw-alignments
+                         acc-is-psyma-sorted 
+                         (get replicons 0) 
+                         (get replicons 1)
+                         row1-offset
+                         row2-offset
+                         align-fn 
+                         color-fn)]
+      (q/stroke 0 0 0 100)
+      (doseq [[x1 y1 x2 y2 x3 y3 x4 y4 color] alignments]
+        (apply q/fill color)
+        (q/quad x1 y1 x2 y2 x3 y4 x4 y4))))
+  
+  ; Between middle and bottom rows
+  (q/with-translation 
+    [45 240]
+    (let [align-fn (fn [x]
+                     [(:query-start x)
+                      (:query-end x)
+                      (:ref-start x)
+                      (:ref-end x)])
+          row2-offset (fn [i row] 
+                           (let [x 
+                                 (if
+                                   (= 
+                                     (:ref-landmark i) 
+                                     "7611") 1 0)]
+                          (calculate-offset x row)))
+          row1-offset (fn [i row] 
+                        (let [x (if
+                                  (= (:query-landmark i) "pSymA") 0 1)]
+                          (calculate-offset x row)))
+          alignments   (draw-alignments
+                         m2-vs-m162
+                         (get replicons 1) 
+                         (get replicons 2)
+                         row1-offset
+                         row2-offset
+                         align-fn 
+                         color-fn)]
+      (q/stroke 0 0 0 100)
+      (doseq [[x1 y1 x2 y2 x3 y3 x4 y4 color] alignments]
+        (apply q/fill color)
+        (q/quad x1 y1 x2 y2 x3 y4 x4 y4))))
+
+  
+  ; Top row
+  (q/with-translation 
+    [45 60]
+    (let [align-fn (fn [x]
+                     [(:ref-start x)
+                      (:ref-end x)
+                      (:query-start x)
+                      (:query-end x)])
+          row1-offset (fn [_ _] 0)
+          alignments   (draw-alignment-blocks
+                         acc-is-psyma-sorted 
+                         (get replicons 0)
+                         row1-offset
+                         (fn [x] [(:ref-start x) (:ref-end x)])
+                         color-fn)]
+      (q/stroke 0 0 0 100)
+      (doseq [[x y width height color] alignments]
+        (apply q/fill color)
+        (q/rect x y width height))))
+  
+  ; Middle row (First vs Middle comparison)
+  (q/with-translation 
+    [45 200]
+    (let [row2-offset (fn [i row] 
+                        (let [x (if
+                                  (= (:query-landmark i) "pSymA") 0 1)]
+                          (calculate-offset x row)))
+          alignments   (draw-alignment-blocks
+                         acc-is-psyma-sorted 
+                         (get replicons 1)
+                         row2-offset
+                         (fn [x] [(:query-start x) (:query-end x)])
+                         color-fn)]
+      (q/stroke 0 0 0 100)
+      (doseq [[x y width height color] alignments]
+        (apply q/fill color)
+        (q/rect x y width height))))
+  
+  ; Middle row (Middle vs Bottom comparison)
+  (q/with-translation 
+    [45 200]
+    (let [row-offset (fn [i row] 
+                        (let [x (if
+                                  (= (:query-landmark i) "pSymA") 0 1)]
+                          (calculate-offset x row)))
+          alignments   (draw-alignment-blocks
+                         m2-vs-m162
+                         (get replicons 1)
+                         row-offset
+                         (fn [x] [(:query-start x) (:query-end x)])
+                         color-fn2)]
+      (q/stroke 0 0 0 100)
+      (doseq [[x y width height color] alignments]
+        (apply q/fill color)
+        (q/rect x y width height))))
+
+ ; Bottom row
+ (q/with-translation 
+    [45 340]
+    (let [alignments   (draw-alignment-blocks
+                         m2-vs-m162
+                         (get replicons 2)
+                         (fn [i row] 
+                           (let [x 
+                                 (if
+                                   (= 
+                                     (:ref-landmark i) 
+                                     "7611") 1 0)]
+                          (calculate-offset x row)))
+                         (fn [x] [(:ref-start x) (:ref-end x)])
+                         color-fn2)]
+      (q/stroke 0 0 0 100)
+      (doseq [[x y width height color] alignments]
+        (apply q/fill color)
+        (q/rect x y width height))))
+  
+  )
+  
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/draw</span>","value":"#'natural-sands/draw"}
+;; <=
+
+;; @@
+(q/defsketch translocation-figures
+  :title "Replicons"
+  :size [width height]
+  :setup setup
+  :draw draw
+  :renderer :svg
+  :output-file "m162.svg"
+  ;:features [:keep-on-top]
+             )
+;; @@
+;; =>
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;natural-sands/translocation-figures</span>","value":"#'natural-sands/translocation-figures"}
+;; <=
+
+;; @@
+
+;; @@
+
+;; @@
+
+;; @@
+
+;; @@
+
+;; @@

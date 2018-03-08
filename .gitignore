@@ -1,0 +1,6 @@
+*.fasta
+*.fasta.*
+*.phr
+*.pin
+*.psq
+*.tsv

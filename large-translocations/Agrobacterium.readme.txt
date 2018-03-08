@@ -1,0 +1,4 @@
+Agrobacterium tumefaciens str. C58 plasmid Ti, complete sequence has high similarity to M270_Accessory_Plasmid_B
+
+Downloaded from NCBI on 8 Nov 2017
+https://www.ncbi.nlm.nih.gov/nuccore/AE007871.2?report=fasta
